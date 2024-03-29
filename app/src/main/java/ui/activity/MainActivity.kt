@@ -549,8 +549,8 @@ class MainActivity : AppCompatActivity() {
 	writeSetting("Post Processing", "transparent postpass", if(prefs.getBoolean("gs_transparent_postpass", false)) "true" else "false")
 
 	// Visuals Shadows
-        if(File(Constants.USER_CONFIG + "/launcher/extensions.log").exists() &&
-           File(Constants.USER_CONFIG + "/launcher/extensions.log").readText().contains("GL_EXT_depth_clamp")) {
+        if(File(Constants.USER_FILE_STORAGE + "/launcher/extensions.log").exists() &&
+           File(Constants.USER_FILE_STORAGE + "/launcher/extensions.log").readText().contains("GL_EXT_depth_clamp")) {
 
             writeSetting("Shadows", "enable shadows",
             if(prefs.getBoolean("gs_object_shadows", false) || prefs.getBoolean("gs_terrain_shadows", false) ||
