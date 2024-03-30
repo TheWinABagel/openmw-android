@@ -100,9 +100,15 @@ class MainActivity : AppCompatActivity() {
         // create user dirs
         File(Constants.USER_CONFIG).mkdirs()
         File(Constants.USER_FILE_STORAGE + "/launcher/icons").mkdirs()
+
+        // create icons files hint
         if (!File(Constants.USER_FILE_STORAGE + "/launcher/icons/paste custom icons here.txt").exists())
             File(Constants.USER_FILE_STORAGE + "/launcher/icons/paste custom icons here.txt").writeText(
 "attack.png \ninventory.png \njournal.png \njump.png \nkeyboard.png \nmouse.png \npause.png \npointer_arrow.png \nrun.png \nsave.png \nsneak.png \nthird_person.png \ntoggle_magic.png \ntoggle_weapon.png \ntoggle.png \nuse.png \nwait.png")
+
+        // create current mods dir in case someone deleted it
+        val modsDir = PreferenceManager.getDefaultSharedPreferences(this).getString("mods_dir", "")!!
+        if (modsDir != "" ) File(modsDir).mkdirs()
     }
 
     /**
