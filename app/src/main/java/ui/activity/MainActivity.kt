@@ -551,7 +551,7 @@ class MainActivity : AppCompatActivity() {
 	writeSetting("Fog", "sky blending", if(prefs.getBoolean("gs_sky_blending", false)) "true" else "false")
 
 	// Visuals PostProcessing
-	writeSetting("Post Processing", "soft particles", if(prefs.getBoolean("gs_soft_particles", false)) "true" else "false")
+	writeSetting("Shaders", "soft particles", if(prefs.getBoolean("gs_soft_particles", false)) "true" else "false")
 	writeSetting("Post Processing", "transparent postpass", if(prefs.getBoolean("gs_transparent_postpass", false)) "true" else "false")
 
 	// Visuals Shadows

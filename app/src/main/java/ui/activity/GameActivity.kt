@@ -79,7 +79,6 @@ class GameActivity : SDLActivity() {
         if (!physicsFPS!!.isEmpty()) {
             try {
                 Os.setenv("OPENMW_PHYSICS_FPS", physicsFPS, true)
-                Os.setenv("OSG_TEXT_SHADER_TECHNIQUE", "ALL", true)
             } catch (e: ErrnoException) {
                 Log.e("OpenMW", "Failed setting environment variables.")
                 e.printStackTrace()
