@@ -79,5 +79,3 @@ index 6e22f6deb15..c8a1080574d 100644
 +{
 +    return projectionMatrix * pos;
 +}
-
-
