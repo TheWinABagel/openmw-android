@@ -37,17 +37,16 @@ object PermissionHelper {
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(activity,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    ActivityCompat.requestPermissions(activity,
-                                                      arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
+                    ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
                     )
                     } else {
-                        // If the user has denied the permission previously and checked "Don't ask again"
+                        // If the user has denied the permission previously
                         // Redirect the user to app settings
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                         val uri = Uri.fromParts("package", activity.packageName, null)
                         intent.data = uri
                         activity.startActivity(intent)
-                        Toast.makeText(activity, "Please enable storage permission in settings", Toast.LENGTH_LONG).show()
+
                     }
                     // wait till granted or freeze infinitelly
                     while (ContextCompat.checkSelfPermission(activity,
