@@ -1,21 +1,21 @@
 /*
-    Copyright (C) 2016 sandstranger
-
-    This file is part of OpenMW-Android.
-
-    OpenMW-Android is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    OpenMW-Android is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with OpenMW-Android.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ *   Copyright (C) 2016 sandstranger
+ *
+ *   This file is part of OpenMW-Android.
+ *
+ *   OpenMW-Android is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   OpenMW-Android is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with OpenMW-Android.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 package permission
 
@@ -36,12 +36,12 @@ object PermissionHelper {
             if (ContextCompat.checkSelfPermission(activity,
                 Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 if (!ActivityCompat.shouldShowRequestPermissionRationale(activity,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
                     ActivityCompat.requestPermissions(activity,
-                        (Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
+                                                      arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 23
                     )
                     } else {
-                        // If the user has denied the permission previously
+                        // If the user has denied the permission previously and checked "Don't ask again"
                         // Redirect the user to app settings
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                         val uri = Uri.fromParts("package", activity.packageName, null)
