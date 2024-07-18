@@ -204,6 +204,7 @@ if [[ $DEPLOY_RESOURCES = "true" ]]; then
 	# global config
 	mkdir -p "$DST/openmw/"
 	cp "$SRC/defaults.bin" "$DST/openmw/"
+ 	cp "$SRC/defaults.cfg" "$DST/openmw/"
 	cp "$SRC/gamecontrollerdb.txt" "$DST/openmw/"
 	cat "$SRC/openmw.cfg" | grep -v "data=" | grep -v "data-local=" >> "$DST/openmw/openmw.base.cfg"
 	cat "$DIR/../app/openmw.base.cfg" >> "$DST/openmw/openmw.base.cfg"
@@ -218,7 +219,6 @@ echo "==> Making your debugging life easier"
 rm -rf "./symbols/$ABI/" && mkdir -p "./symbols/$ABI/"
 cp "./build/$ARCH/openal-prefix/src/openal-build/libopenal.so" "./symbols/$ABI/"
 cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libSDL2.so" "./symbols/$ABI/"
-cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libhidapi.so" "./symbols/$ABI/"
 cp "./build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
 cp "../app/src/main/jniLibs/$ABI/libc++_shared.so" "./symbols/$ABI/"
 
