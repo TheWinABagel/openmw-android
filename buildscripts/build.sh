@@ -136,8 +136,8 @@ mkdir -p prefix/$ARCH/
 # symlink lib64 -> lib so we don't get half the libs in one directory half in another
 mkdir -p prefix/$ARCH/lib
 ln -sf lib prefix/$ARCH/lib64
-mkdir -p prefix/$ARCH/osg/lib
-ln -sf lib prefix/$ARCH/osg/lib64
+mkdir -p prefix/$ARCH/vsg/lib
+ln -sf lib prefix/$ARCH/vsg/lib64
 
 # generate command_wrapper.sh
 cat include/command_wrapper_head.sh.in | \
@@ -179,13 +179,13 @@ rm -rf ../app/src/main/jniLibs/$ABI/
 mkdir -p ../app/src/main/jniLibs/$ABI/
 
 # libopenmw.so is a special case
-find build/$ARCH/openmw-prefix/ -iname "libopenmw.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/libopenmw.so \;
+find build/$ARCH/vsgopenmw-prefix/ -iname "libopenmw.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/libopenmw.so \;
 
 # copy delta_plugin to lib location
 cp tool/libdelta_plugin.so ../app/src/main/jniLibs/$ABI/
 
 # copy over libs we compiled
-cp prefix/$ARCH/lib/{libopenal,libSDL2,libhidapi,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
+cp prefix/$ARCH/lib/{libopenal,libSDL2,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
 
 # copy over libc++_shared
 find ./toolchain/$ARCH/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
@@ -194,7 +194,7 @@ if [[ $DEPLOY_RESOURCES = "true" ]]; then
 	echo "==> Deploying resources"
 
 	DST=$DIR/../app/src/main/assets/libopenmw/
-	SRC=build/$ARCH/openmw-prefix/src/openmw-build/
+	SRC=build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/
 
 	rm -rf "$DST" && mkdir -p "$DST"
 
@@ -204,6 +204,7 @@ if [[ $DEPLOY_RESOURCES = "true" ]]; then
 	# global config
 	mkdir -p "$DST/openmw/"
 	cp "$SRC/defaults.bin" "$DST/openmw/"
+	cp "$SRC/defaults.cfg" "$DST/openmw/"
 	cp "$SRC/gamecontrollerdb.txt" "$DST/openmw/"
 	cat "$SRC/openmw.cfg" | grep -v "data=" | grep -v "data-local=" >> "$DST/openmw/openmw.base.cfg"
 	cat "$DIR/../app/openmw.base.cfg" >> "$DST/openmw/openmw.base.cfg"
@@ -218,8 +219,7 @@ echo "==> Making your debugging life easier"
 rm -rf "./symbols/$ABI/" && mkdir -p "./symbols/$ABI/"
 cp "./build/$ARCH/openal-prefix/src/openal-build/libopenal.so" "./symbols/$ABI/"
 cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libSDL2.so" "./symbols/$ABI/"
-cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libhidapi.so" "./symbols/$ABI/"
-cp "./build/$ARCH/openmw-prefix/src/openmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
+cp "./build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
 cp "../app/src/main/jniLibs/$ABI/libc++_shared.so" "./symbols/$ABI/"
 
 if [ $ASAN = true ]; then
