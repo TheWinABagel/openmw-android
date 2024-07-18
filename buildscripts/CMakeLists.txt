@@ -25,7 +25,7 @@ set(FFMPEG_VERSION 4.4)
 set(FFMPEG_HASH SHA256=42093549751b582cf0f338a21a3664f52e0a9fbe0d238d3c992005e493607d0e)
 
 # https://www.libsdl.org/download-2.0.php
-set(SDL2_VERSION 2.0.12)
+set(SDL2_VERSION 2.24.0)
 set(SDL2_HASH SHA256=349268f695c02efbc9b9148a70b85e58cefbbf704abd3e91be654db7f1e2c863)
 
 # https://github.com/bulletphysics/bullet3/releases
@@ -292,11 +292,11 @@ ExternalProject_Add(ffmpeg
 ExternalProject_Add(sdl2
 	URL https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz
 	https://github.com/xyzz/openmw-deps/releases/download/v0/SDL2-${SDL2_VERSION}.tar.gz
-	URL_HASH ${SDL2_HASH}
+#	URL_HASH ${SDL2_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-	PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/sdl2-android-120hz-gyroscope.patch
-	COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/sdl2-disable-gamma-warning.patch
+	PATCH_COMMAND """"
+	COMMAND """"
 
 	CONFIGURE_COMMAND ""
 
@@ -305,7 +305,6 @@ ExternalProject_Add(sdl2
 
 	INSTALL_COMMAND mkdir -p ${prefix}/lib/
 	COMMAND cp libs/${app_abi}/libSDL2.so ${prefix}/lib/
-	COMMAND cp libs/${app_abi}/libhidapi.so ${prefix}/lib/
 	COMMAND cp -r <SOURCE_DIR>/include ${prefix}/
 )
 
@@ -463,7 +462,7 @@ ExternalProject_Add(libcollada
 )
 
 set(VSG_COMMON
-	-DDYNAMIC_OPENTHREADS=OFF
+    -DDYNAMIC_OPENTHREADS=OFF
     -DBUILD_VSG_PLUGIN_VSG=ON
     -DBUILD_VSG_PLUGIN_DAE=ON
     -DBUILD_VSG_PLUGIN_DDS=ON
