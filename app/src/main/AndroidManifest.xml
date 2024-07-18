@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-feature android:name="android.hardware.vulkan.level" android:required="true" />
-    <uses-feature android:name="android.hardware.vulkan.version" android:version="1" android:required="true" />
+    <uses-feature android:name="android.hardware.vulkan.version" android:version="4202496" android:required="true" />
 
     <application
         android:requestLegacyExternalStorage="true"
