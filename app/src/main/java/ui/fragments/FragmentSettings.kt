@@ -28,6 +28,7 @@ import android.content.SharedPreferences
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Build.VERSION
 import android.preference.EditTextPreference
 import android.preference.Preference
 import android.preference.PreferenceFragment
@@ -41,8 +42,11 @@ import file.GameInstaller
 import ui.activity.ConfigureControls
 import ui.activity.MainActivity
 import ui.activity.ModsActivity
+import ui.activity.SettingsActivity
 import utils.MyApp
 import java.util.*
+import java.io.File
+import constants.Constants
 
 class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener {
 
@@ -52,18 +56,37 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
         addPreferencesFromResource(R.xml.settings)
         preferenceScreen.sharedPreferences.registerOnSharedPreferenceChangeListener(this)
 
-        updateGammaState()
-
         findPreference("pref_controls").setOnPreferenceClickListener {
             val intent = Intent(activity, ConfigureControls::class.java)
             this.startActivity(intent)
             true
         }
 
-        findPreference("pref_mods").setOnPreferenceClickListener {
-            val intent = Intent(activity, ModsActivity::class.java)
+        findPreference("pref_game_settings").setOnPreferenceClickListener {
+            val intent = Intent(activity, SettingsActivity::class.java)
             this.startActivity(intent)
             true
+        }
+
+        findPreference("pref_mods").setOnPreferenceClickListener {
+            // Just prevent crash here if data files are not selected
+            val sharedPref = preferenceScreen.sharedPreferences
+            val inst = GameInstaller(sharedPref.getString("game_files", "")!!)
+            if (!inst.check()) {
+            AlertDialog.Builder(getActivity())
+                .setTitle(R.string.no_data_files_title)
+                .setMessage(R.string.no_data_files_message)
+                .setPositiveButton(android.R.string.ok) { _: DialogInterface, _: Int -> }
+                .show()
+
+                false
+            }
+            else
+            {
+                val intent = Intent(activity, ModsActivity::class.java)
+                this.startActivity(intent)
+                true
+            }
         }
 
         findPreference("game_files").setOnPreferenceClickListener {
@@ -85,6 +108,9 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
             }
             true
         }
+
+        if (android.os.Build.VERSION.SDK_INT < 29)
+            findPreference("pref_display_cutout_area").isEnabled = false
     }
 
     /**
@@ -114,6 +140,8 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
 
         with(sharedPref.edit()) {
             putString("game_files", gameFiles)
+            if (sharedPref.getString("mods_dir", "")!! == "")
+                putString("mods_dir", gameFiles + "/")
             apply()
         }
     }
@@ -155,7 +183,6 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String) {
         updatePreference(findPreference(key), key)
-        updateGammaState()
     }
 
     private fun updatePreference(preference: Preference?, key: String) {
@@ -174,14 +201,4 @@ class FragmentSettings : PreferenceFragment(), OnSharedPreferenceChangeListener 
             preference.summary = preference.sharedPreferences.getString("game_files", "")
         }
     }
-
-    /**
-     * @brief Disable gamma preference if GLES1 is selected
-     */
-    private fun updateGammaState() {
-        val sharedPref = preferenceScreen.sharedPreferences
-        findPreference("pref_gamma").isEnabled =
-                sharedPref.getString("pref_graphicsLibrary_v2", "") != "gles1"
-    }
-
 }

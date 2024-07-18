@@ -17,7 +17,7 @@ set(OPENAL_VERSION 1.21.1)
 set(OPENAL_HASH SHA256=8ac17e4e3b32c1af3d5508acfffb838640669b4274606b7892aa796ca9d7467f)
 
 # http://www.boost.org/users/download/
-set(BOOST_VERSION 1.69.0)
+set(BOOST_VERSION 1.83.0)
 set(BOOST_HASH SHA256=8f32d4617390d1c2d16f26a27ab60d97807b35440d45891fa340fc2648b04406)
 
 # https://www.ffmpeg.org/download.html
@@ -33,28 +33,23 @@ set(BULLET_VERSION 3.17)
 set(BULLET_HASH SHA256=baa642c906576d4d98d041d0acb80d85dd6eff6e3c16a009b1abf1ccd2bc0a61)
 
 # https://github.com/MyGUI/mygui/releases
-set(MYGUI_VERSION 3.4.0)
+set(MYGUI_VERSION 3.4.3)
 set(MYGUI_HASH SHA256=d1d5f294670ae71f7200ed4b30859018281d8cfd45d6a38d18b97a4aba604c42)
-
-# https://github.com/ptitSeb/gl4es/releases
-set(GL4ES_VERSION v1.1.4)
-set(GL4ES_HASH SHA256=b565e717c7d192e936bda25f3cb90ad8db398af56414ec08294b6716574c1a6d)
-
-# https://github.com/openscenegraph/OpenSceneGraph/releases
-set(OSG_VERSION 3.6.5)
-set(OSG_HASH SHA256=aea196550f02974d6d09291c5d83b51ca6a03b3767e234a8c0e21322927d1e12)
 
 # https://github.com/lz4/lz4/releases
 set(LZ4_VERSION 1.9.3)
 set(LZ4_HASH SHA256=030644df4611007ff7dc962d981f390361e6c97a34e5cbc393ddfbe019ffe2c1)
 
 # https://luajit.org/download.html
-set(LUAJIT_VERSION 2.1.0-beta3)
+set(LUAJIT_VERSION 505e2c03de35e2718eef0d2d3660712e06dadf1f)
 set(LUAJIT_HASH SHA256=1ad2e34b111c802f9d0cdf019e986909123237a28c746b21295b63c9e785d9c3)
 
+set(LIBICU_VERSION 70-1)
+set(LIBICU_HASH SHA256=4013d7aff8a34bae410664bdb16554d7eda03654b22627b9284ab55a685492d4)
+
 # https://github.com/OpenMW/openmw/commits/master
-set(OPENMW_VERSION 92f4e32f78adc1d48dcd7ad4f9ed3ae5243c8203)
-set(OPENMW_HASH SHA256=8ce70ffabcc03dba33fe955b273ae6a6afe3ae054797261f38781a869a0e04ec)
+set(VSGOPENMW_VERSION 0.1)
+set(OPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
 
 # End of configurable options
 
@@ -75,6 +70,7 @@ set(COMMON_CMAKE_ARGS
 	-DANDROID_ABI=${app_abi}
 	-DANDROID_PLATFORM=${android_platform}
 	-DANDROID_STL=c++_shared
+	-DANDROID_LD=deprecated
 	-DANDROID_CPP_FEATURES=rtti\ exceptions
 	-DCMAKE_C_FLAGS=-DMYGUI_DONT_REPLACE_NULLPTR\ -I${prefix}/include/\ $ENV{CFLAGS}
 	-DCMAKE_CXX_FLAGS=-DMYGUI_DONT_REPLACE_NULLPTR\ -I${prefix}/include/\ $ENV{CXXFLAGS}
@@ -90,6 +86,7 @@ set(COMMON_NDK_BUILD_FLAGS
 	APP_BUILD_SCRIPT=<SOURCE_DIR>/Android.mk
 	APP_PLATFORM=${android_platform}
 	APP_ABI=${app_abi}
+	APP_LD=deprecated
 	LOCAL_LDFLAGS=$ENV{LDFLAGS}
 	-j4
 )
@@ -107,7 +104,7 @@ if (${BUILD_TYPE} STREQUAL "debug")
 	set(ffmpeg_configure_flags ${ffmpeg_configure_flags} --disable-asm --disable-optimizations)
 endif()
 
-if ((${ARCH} STREQUAL "x86_64") OR (${ARCH} STREQUAL "x86"))
+if ((${ARCH} STREQUAL "x86_64") OR (${ARCH} STREQUAL "x86") OR (${ARCH} STREQUAL "arm64"))
 	# ffmpeg fails to link with assembly optimizations on x86-64
 	set(ffmpeg_configure_flags ${ffmpeg_configure_flags} --disable-asm)
 endif()
@@ -156,9 +153,30 @@ ExternalProject_Add(libpng
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install check_PROGRAMS= bin_PROGRAMS=
 )
 
+set(libicu_flags
+	--disable-tests
+	--disable-samples
+	--disable-icuio
+	--disable-extras
+	--with-cross-build=${CMAKE_SOURCE_DIR}/build/icu-host-build)
+
+ExternalProject_Add(libicu
+	URL https://github.com/unicode-org/icu/archive/refs/tags/release-${LIBICU_VERSION}.zip
+	URL_HASH ${LIBICU_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	CONFIGURE_COMMAND ${wrapper_command} <SOURCE_DIR>/icu4c/source/configure
+	${COMMON_AUTOCONF_FLAGS}
+	${libicu_flags}
+
+	BUILD_COMMAND ${wrapper_command} $(MAKE) check_PROGRAMS= bin_PROGRAMS=
+
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install check_PROGRAMS= bin_PROGRAMS=
+)
+
 ExternalProject_Add(freetype2
 	URL https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE2_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/freetype-${FREETYPE2_VERSION}.tar.gz
+	http://prdownloads.sourceforge.net/freetype/freetype-${FREETYPE2_VERSION}.tar.gz
 	URL_HASH ${FREETYPE2_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -191,11 +209,9 @@ ExternalProject_Add(openal
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
 )
 
-string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE ${BOOST_VERSION})
 ExternalProject_Add(boost
-	URL https://dl.bintray.com/boostorg/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2
-	https://github.com/xyzz/openmw-deps/releases/download/v0/boost_${BOOST_VERSION_UNDERSCORE}.tar.bz2
-	URL_HASH ${BOOST_HASH}
+	URL https://github.com/boostorg/boost/releases/download/boost-1.83.0/boost-1.83.0.tar.gz
+	#URL_HASH ${BOOST_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
 	BUILD_IN_SOURCE 1
@@ -211,8 +227,9 @@ ExternalProject_Add(boost
 	--with-program_options
 	--with-system
 	--with-iostreams
+	--with-regex
 	--ignore-site-config
-	toolset=clang-android
+	toolset=clang
 	architecture=${BOOST_ARCH}
 	address-model=${BOOST_ADDRESS_MODEL}
 	cflags=$ENV{CFLAGS}
@@ -224,10 +241,11 @@ ExternalProject_Add(boost
 	link=static
 	runtime-link=static
 	install
-	COMMAND ${host}-ranlib ${prefix}/lib/libboost_filesystem.a
-	COMMAND ${host}-ranlib ${prefix}/lib/libboost_program_options.a
-	COMMAND ${host}-ranlib ${prefix}/lib/libboost_system.a
-	COMMAND ${host}-ranlib ${prefix}/lib/libboost_iostreams.a
+	COMMAND llvm-ranlib ${prefix}/lib/libboost_filesystem.a
+	COMMAND llvm-ranlib ${prefix}/lib/libboost_program_options.a
+	COMMAND llvm-ranlib ${prefix}/lib/libboost_system.a
+	COMMAND llvm-ranlib ${prefix}/lib/libboost_iostreams.a
+	COMMAND llvm-ranlib ${prefix}/lib/libboost_regex.a
 )
 
 ExternalProject_Add(ffmpeg
@@ -240,7 +258,7 @@ ExternalProject_Add(ffmpeg
 	${ffmpeg_configure_flags}
 	--target-os=android
 	--enable-cross-compile
-	--cross-prefix=${host}-
+	--cross-prefix=llvm-
 	--cc=${host}-clang
 	--arch=${ARCH}
 	--cpu=${FFMPEG_CPU}
@@ -278,6 +296,7 @@ ExternalProject_Add(sdl2
 	DOWNLOAD_DIR ${download_dir}
 
 	PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/sdl2-android-120hz-gyroscope.patch
+	COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/sdl2-disable-gamma-warning.patch
 
 	CONFIGURE_COMMAND ""
 
@@ -305,48 +324,29 @@ ExternalProject_Add(bullet
 	-DBUILD_UNIT_TESTS=OFF
 	-DBUILD_EXTRAS=OFF
 	-DUSE_DOUBLE_PRECISION=ON
+	-DBULLET2_MULTITHREADING=ON
 
 	BUILD_COMMAND ${wrapper_command} $(MAKE)
 
 	INSTALL_COMMAND $(MAKE) install
 )
 
-ExternalProject_Add(gl4es
-	URL https://github.com/ptitSeb/gl4es/archive/${GL4ES_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/gl4es-${GL4ES_VERSION}.gz
-	URL_HASH ${GL4ES_HASH}
-	DOWNLOAD_DIR ${download_dir}
-
-	PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/gl4es/shared-library.patch
-	COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/gl4es/gamma.patch
-	COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/gl4es/keyword-usage.patch
-
-	CONFIGURE_COMMAND ""
-
-	BUILD_COMMAND ${wrapper_command} ndk-build
-	${COMMON_NDK_BUILD_FLAGS}
-
-	INSTALL_COMMAND mkdir -p ${prefix}/lib/
-	COMMAND cp libs/${app_abi}/libGL.so ${prefix}/lib/
-	COMMAND cp -r <SOURCE_DIR>/include ${prefix}/
-)
-
 ExternalProject_Add(mygui
 	DEPENDS freetype2
 
 	URL https://github.com/MyGUI/mygui/archive/MyGUI${MYGUI_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/MyGUI${MYGUI_VERSION}.tar.gz
-	URL_HASH ${MYGUI_HASH}
+        #URL_HASH ${MYGUI_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-	PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/mygui-dont-set-debug-postfix.patch
+        #PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/mygui-dont-set-debug-postfix.patch
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
 	${COMMON_CMAKE_ARGS}
-	-DMYGUI_RENDERSYSTEM=ON
+	-DMYGUI_RENDERSYSTEM=1
 	-DMYGUI_BUILD_DEMOS=OFF
 	-DMYGUI_BUILD_TOOLS=OFF
 	-DMYGUI_BUILD_PLUGINS=OFF
+	-DMYGUI_DONT_USE_OBSOLETE=ON
 	-DFREETYPE_FT2BUILD_INCLUDE_DIR=${prefix}/include/freetype2/
 
 	-DMYGUI_STATIC=ON
@@ -359,6 +359,7 @@ ExternalProject_Add(mygui
 ExternalProject_Add(lz4
 	URL https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz
 	https://github.com/xyzz/openmw-deps/releases/download/v0/v${LZ4_VERSION}.tar.gz
+
 	URL_HASH ${LZ4_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -376,7 +377,7 @@ set(LUAJIT_MAKE_FLAGS
 	HOST_CC=${LUAJIT_HOST_CC}
 	CFLAGS=
 	TARGET_CFLAGS=$ENV{CFLAGS}
-	CROSS=${host}-
+	CROSS=llvm-
 	STATIC_CC=${host}-clang
 	DYNAMIC_CC=${host}-clang\ -fPIC
 	TARGET_LD=${host}-clang
@@ -384,8 +385,8 @@ set(LUAJIT_MAKE_FLAGS
 )
 
 ExternalProject_Add(luajit
-	URL https://luajit.org/download/LuaJIT-${LUAJIT_VERSION}.tar.gz
-	URL_HASH ${LUAJIT_HASH}
+	URL https://github.com/luaJit/LuaJIT/archive/${LUAJIT_VERSION}.tar.gz
+#	URL_HASH ${LUAJIT_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
 	BUILD_IN_SOURCE 1
@@ -400,68 +401,109 @@ ExternalProject_Add(luajit
 	COMMAND bash -c "rm ${prefix}/lib/libluajit*.so*"
 )
 
-set(OSG_COMMON
-	-DOPENGL_PROFILE="GL1"
-	-DDYNAMIC_OPENTHREADS=OFF
-	-DDYNAMIC_OPENSCENEGRAPH=OFF
-	-DBUILD_OSG_PLUGIN_OSG=ON
-	-DBUILD_OSG_PLUGIN_DDS=ON
-	-DBUILD_OSG_PLUGIN_TGA=ON
-	-DBUILD_OSG_PLUGIN_BMP=ON
-	-DBUILD_OSG_PLUGIN_JPEG=ON
-	-DBUILD_OSG_PLUGIN_PNG=ON
-	-DBUILD_OSG_PLUGIN_FREETYPE=ON
-	-DJPEG_INCLUDE_DIR=${prefix}/include/
-	-DPNG_INCLUDE_DIR=${prefix}/include/
-	-DFREETYPE_DIR=${prefix}
-	-DOSG_CPP_EXCEPTIONS_AVAILABLE=TRUE
-	-DOSG_GL1_AVAILABLE=ON
-	-DOSG_GL2_AVAILABLE=OFF
-	-DOSG_GL3_AVAILABLE=OFF
-	-DOSG_GLES1_AVAILABLE=OFF
-	-DOSG_GLES2_AVAILABLE=OFF
-	-DOSG_GL_LIBRARY_STATIC=OFF
-	-DOSG_GL_DISPLAYLISTS_AVAILABLE=OFF
-	-DOSG_GL_MATRICES_AVAILABLE=ON
-	-DOSG_GL_VERTEX_FUNCS_AVAILABLE=ON
-	-DOSG_GL_VERTEX_ARRAY_FUNCS_AVAILABLE=ON
-	-DOSG_GL_FIXED_FUNCTION_AVAILABLE=ON
-	-DBUILD_OSG_APPLICATIONS=OFF
-	-DBUILD_OSG_PLUGINS_BY_DEFAULT=OFF
-	-DBUILD_OSG_DEPRECATED_SERIALIZERS=OFF
-)
-
-set(OSG_PATCH
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/disable-polygon-offset.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/remove-lib-prefix-from-plugins.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/fix-freetype-include-dirs.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/0001-Replace-Atomic-impl-with-std-atomic.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/0002-BufferObject-make-numClients-atomic.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/0004-IncrementalCompileOperation-wrap-some-stuff-in-atomi.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/osg/0005-CullSettings-make-inheritanceMask-atomic-to-silence-.patch
-)
-
-ExternalProject_Add(osg
-	DEPENDS libjpeg-turbo libpng gl4es freetype2
-
-	URL https://github.com/openscenegraph/OpenSceneGraph/archive/OpenSceneGraph-${OSG_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/OpenSceneGraph-${OSG_VERSION}.tar.gz
-	URL_HASH ${OSG_HASH}
+ExternalProject_Add(zlib
+	URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.tar.gz
+	URL_HASH SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff
 	DOWNLOAD_DIR ${download_dir}
-
-	PATCH_COMMAND ${OSG_PATCH}
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
 	${COMMON_CMAKE_ARGS}
-	${OSG_COMMON}
+
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+ExternalProject_Add(libxml
+	DEPENDS zlib
+
+	URL https://github.com/GNOME/libxml2/archive/refs/tags/v2.9.12.tar.gz
+	URL_HASH SHA256=8a4ddd706419c210b30b8978a51388937fd9362c34fc9a3d69e4fcc6f8055ee0
+	DOWNLOAD_DIR ${download_dir}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	-DBUILD_SHARED_LIBS=OFF
+	-DLIBXML2_WITH_CATALOG=OFF
+	-DLIBXML2_WITH_ICONV=OFF
+	-DLIBXML2_WITH_LZMA=OFF
+	-DLIBXML2_WITH_PROGRAMS=OFF
+	-DLIBXML2_WITH_PYTHON=OFF
+	-DLIBXML2_WITH_TESTS=OFF
+	-DLIBXML2_WITH_ZLIB=ON
 
 	BUILD_COMMAND ${wrapper_command} $(MAKE)
 
-	INSTALL_COMMAND mkdir -p <SOURCE_DIR>/3rdparty/build/libpng <SOURCE_DIR>/3rdparty/build/libjpeg <SOURCE_DIR>/3rdparty/build/freetype
-	COMMAND $(MAKE) install
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
 )
 
-set(OPENMW_COMMON
+set(LIBCOLLADA_PATCH patch -d <SOURCE_DIR> -p0 -t -N < ${CMAKE_SOURCE_DIR}/patches/libcollada-minizip-fix.patch)
+
+ExternalProject_Add(libcollada
+	DEPENDS libxml boost
+
+	URL https://github.com/rdiankov/collada-dom/archive/v2.5.0.tar.gz
+	URL_HASH SHA256=3be672407a7aef60b64ce4b39704b32816b0b28f61ebffd4fbd02c8012901e0d
+	DOWNLOAD_DIR ${download_dir}
+
+	PATCH_COMMAND ${LIBCOLLADA_PATCH}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	-DBoost_USE_STATIC_LIBS=ON
+	-DBoost_USE_STATIC_RUNTIME=ON
+	-DBoost_NO_SYSTEM_PATHS=ON
+	-DBoost_INCLUDE_DIR=${prefix}/include
+	-DHAVE_STRTOQ=0
+	-DUSE_FILE32API=1
+	-DCMAKE_CXX_FLAGS=-Dauto_ptr=unique_ptr\ -I${prefix}/include/\ $ENV{CXXFLAGS}
+
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+set(VSG_COMMON
+	-DDYNAMIC_OPENTHREADS=OFF
+    -DBUILD_VSG_PLUGIN_VSG=ON
+    -DBUILD_VSG_PLUGIN_DAE=ON
+    -DBUILD_VSG_PLUGIN_DDS=ON
+    -DBUILD_VSG_PLUGIN_TGA=ON
+    -DBUILD_VSG_PLUGIN_BMP=ON
+    -DBUILD_VSG_PLUGIN_JPEG=ON
+    -DBUILD_VSG_PLUGIN_PNG=ON
+    -DBUILD_VSG_PLUGIN_FREETYPE=ON
+    -DOSG_CPP_EXCEPTIONS_AVAILABLE=TRUE
+    -DJPEG_INCLUDE_DIR=${PREFIX}/include/
+    -DPNG_INCLUDE_DIR=${PREFIX}/include/
+    -DFREETYPE_DIR=${PREFIX}/include/
+    -DCOLLADA_INCLUDE_DIR=${PREFIX}/include/collada-dom2.5
+    -DCOLLADA_DIR=${PREFIX}/include/collada-dom2.5/1.4
+    -DVulkan_FIND_VERSION=${CMAKE_SOURCE_DIR}/toolchain/ndk/sources/third_party/vulkan/src/include
+    -DOSG_FIND_3RD_PARTY_DEPS=OFF
+)
+
+set(VSG_PATCH
+
+)
+
+ExternalProject_Add(vsg
+	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
+
+	URL https://github.com/vsg-dev/VulkanSceneGraph/archive/refs/tags/v1.1.6.tar.gz
+#	URL_HASH ${OPENMW_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	PATCH_COMMAND ${VSG_PATCH}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	${VSG_COMMON}
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+set(VSGOPENMW_COMMON
 	-DBUILD_BSATOOL=0
 	-DBUILD_NIFTEST=0
 	-DBUILD_ESMTOOL=0
@@ -469,40 +511,41 @@ set(OPENMW_COMMON
 	-DBUILD_MWINIIMPORTER=0
 	-DBUILD_ESSIMPORTER=0
 	-DBUILD_OPENCS=0
+	-DBUILD_NAVMESHTOOL=0
 	-DBUILD_WIZARD=0
 	-DBUILD_MYGUI_PLUGIN=0
+	-DBUILD_BULLETOBJECTTOOL=0
+	-DOPENMW_USE_SYSTEM_SQLITE3=OFF
+	-DOPENMW_USE_SYSTEM_YAML_CPP=OFF
+	-DOPENMW_USE_SYSTEM_ICU=ON
+	-DVSG_INCLUDE_DIR=${PREFIX}/include/vsg/
+	-DOPENMW_USE_SYSTEM_VSGXCHANGE=FALSE
+	-DOPENMW_USE_SYSTEM_VSG=OFF
+	-DOPENMW_USE_SYSTEM_RECASTNAVIGATION=FALSE
+	-DUSE_SYSTEM_TINYXML=FALSE
+	-DVulkan_FIND_VERSION=${CMAKE_SOURCE_DIR}/toolchain/ndk/sources/third_party/vulkan/src/include
 	-DOPENAL_INCLUDE_DIR=${prefix}/include/AL/
 	-DBullet_INCLUDE_DIR=${prefix}/include/bullet/
-	-DOPENGL_ES=OFF
 	-DOSG_STATIC=TRUE
 	-DMyGUI_LIBRARY=${prefix}/lib/libMyGUIEngineStatic.a
 )
 
-set(OPENMW_PATCH
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/gamma.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/0001-loadingscreen-disable-for-now.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/0009-windowmanagerimp-always-show-mouse-when-possible-pat.patch &&
-    patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/0010-android-fix-context-being-lost-on-app-minimize.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/0014-settingswindow-save-user-settings-file-when-ok-is-pr.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/0012-components-misc-stringops-use-boost-format-instead-o.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/fix-build.patch &&
-	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/refraction-fix.patch &&
-	cp ${CMAKE_SOURCE_DIR}/patches/openmw/android_main.cpp <SOURCE_DIR>/apps/openmw/android_main.cpp
+set(VSGOPENMW_PATCH
+	cp ${CMAKE_SOURCE_DIR}/patches/openmw/defaults.bin ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw-build/defaults.bin
 )
 
-ExternalProject_Add(openmw
-	DEPENDS boost openal osg mygui ffmpeg sdl2 bullet lz4 luajit
+ExternalProject_Add(vsgopenmw
+	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
 
-	URL https://github.com/OpenMW/openmw/archive/${OPENMW_VERSION}.tar.gz
-	URL_HASH ${OPENMW_HASH}
+	URL https://github.com/Duron27/vsgopenmw/archive/refs/tags/${VSGOPENMW_VERSION}.tar.gz
+#	URL_HASH ${OPENMW_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-	PATCH_COMMAND ${OPENMW_PATCH}
+	PATCH_COMMAND ${VSGOPENMW_PATCH}
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
 	${COMMON_CMAKE_ARGS}
-	${OPENMW_COMMON}
-
+	${VSGOPENMW_COMMON}
 	BUILD_COMMAND $(MAKE)
 
 	INSTALL_COMMAND ""

@@ -23,6 +23,7 @@ package ui.activity
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Process
+import android.os.Build.VERSION
 import android.preference.PreferenceManager
 import android.system.ErrnoException
 import android.system.Os
@@ -39,6 +40,13 @@ import parser.CommandlineParser
 import ui.controls.Osc
 
 import utils.Utils.hideAndroidControls
+
+import android.util.DisplayMetrics
+import android.os.AsyncTask
+import android.widget.ImageView
+import android.widget.TextView
+import android.graphics.Typeface
+import android.graphics.Rect
 
 /**
  * Enum for different mouse modes as specified in settings
@@ -73,28 +81,37 @@ class GameActivity : SDLActivity() {
         if (!physicsFPS!!.isEmpty()) {
             try {
                 Os.setenv("OPENMW_PHYSICS_FPS", physicsFPS, true)
-                Os.setenv("OSG_TEXT_SHADER_TECHNIQUE", "NO_TEXT_SHADER", true)
+                Os.setenv("OSG_TEXT_SHADER_TECHNIQUE", "ALL", true)
             } catch (e: ErrnoException) {
                 Log.e("OpenMW", "Failed setting environment variables.")
                 e.printStackTrace()
             }
-
         }
 
         System.loadLibrary("c++_shared")
         System.loadLibrary("openal")
         System.loadLibrary("SDL2")
-        if (graphicsLibrary != "gles1") {
-            try {
-                Os.setenv("OPENMW_GLES_VERSION", "2", true)
-                Os.setenv("LIBGL_ES", "2", true)
-            } catch (e: ErrnoException) {
-                Log.e("OpenMW", "Failed setting environment variables.")
-                e.printStackTrace()
-            }
 
+        try {
+            // Environment variables specific to Vulkan can be set here
+        } catch (e: ErrnoException) {
+            Log.e("OpenMW", "Failed setting environment variables.")
+            e.printStackTrace()
         }
 
+        val textureShrinkingOption = prefs!!.getString("pref_textureShrinking_v2", "")
+        if (textureShrinkingOption == "low") Os.setenv("LIBGL_SHRINK", "2", true)
+        if (textureShrinkingOption == "medium") Os.setenv("LIBGL_SHRINK", "7", true)
+        if (textureShrinkingOption == "high") Os.setenv("LIBGL_SHRINK", "6", true)
+        
+                val avoid16bits = prefs!!.getBoolean("pref_avoid16bits", true)
+        if (avoid16bits == true) Os.setenv("LIBGL_AVOID16BITS", "1", true)
+        else Os.setenv("LIBGL_AVOID16BITS", "0", true)
+
+        Os.setenv("OSG_VERTEX_BUFFER_HINT", "VBO", true)
+        Os.setenv("OPENMW_USER_FILE_STORAGE", Constants.USER_FILE_STORAGE + "/", true)
+        //Os.setenv("OSG_NOTIFY_LEVEL", "FATAL", true) //hide osg errors for now, gl4es bug.
+        
         val envline: String = PreferenceManager.getDefaultSharedPreferences(this).getString("envLine", "").toString()
         if (envline.length > 0) {
             val envs: List<String> = envline.split(" ", "\n")
@@ -108,7 +125,7 @@ class GameActivity : SDLActivity() {
             }
         }
 
-        System.loadLibrary("GL")
+        System.loadLibrary("vulkan")
         System.loadLibrary("openmw")
     }
 
@@ -116,11 +133,97 @@ class GameActivity : SDLActivity() {
         return "libopenmw.so"
     }
 
+
+    private fun showProgressBar() {
+        val dm = DisplayMetrics()
+        windowManager.defaultDisplay.getRealMetrics(dm)
+
+        val progressBarBackground = ImageView(layout.context)
+        progressBarBackground.setImageResource(R.drawable.progressbarbackground)
+        progressBarBackground.setScaleType(ImageView.ScaleType.FIT_XY)
+        progressBarBackground.setX(((dm.widthPixels / 2) - 405).toFloat())
+        progressBarBackground.setY(((dm.heightPixels / 2) - 105).toFloat())
+        layout.addView(progressBarBackground)
+        progressBarBackground.getLayoutParams().width = 810
+        progressBarBackground.getLayoutParams().height = 60
+
+
+        val progressBar = ImageView(layout.context)
+        progressBar.setImageResource(R.drawable.progressbar)
+        progressBar.setScaleType(ImageView.ScaleType.FIT_XY)
+        progressBar.setX(((dm.widthPixels / 2) - 400).toFloat())
+        progressBar.setY(((dm.heightPixels / 2) - 100).toFloat())
+        layout.addView(progressBar)
+        progressBar.getLayoutParams().width = 0
+        progressBar.getLayoutParams().height = 50
+
+        val message = "GENERATING NAVMESH CACHE"
+        val text = TextView(this)
+        text.setText(message)
+        val bounds = Rect()
+        text.getPaint().getTextBounds(message!!.toString(), 0, message!!.length, bounds)
+        text.setX(((dm.widthPixels / 2) - (bounds.width() / 2)) .toFloat())
+        text.setY(((dm.heightPixels / 2) - 200).toFloat())
+        text.setTypeface(null, Typeface.BOLD)
+        layout.addView(text)
+
+        val percentageText = TextView(this)
+        percentageText.setX((dm.widthPixels / 2).toFloat())
+        percentageText.setY(((dm.heightPixels / 2) + 50).toFloat())
+        layout.addView(percentageText)
+
+        Os.setenv("NAVMESHTOOL_MESSAGE", "0.0", true)
+        ProgressBarUpdater(percentageText, progressBar, dm.widthPixels, dm.heightPixels).execute()
+    }
+
+    class ProgressBarUpdater(val percentageText: TextView, val progressBar: ImageView, val screenWidth: Int, val screenHeight: Int) : AsyncTask<Void, String, String>() {
+        override fun doInBackground(vararg params: Void?): String {
+
+            while(Os.getenv("NAVMESHTOOL_MESSAGE") != "Done") {
+                publishProgress(Os.getenv("NAVMESHTOOL_MESSAGE"))
+                Thread.sleep(50)
+            }
+
+            return "DONE"
+        }
+/*
+        override fun onPreExecute() {
+            super.onPreExecute()
+        }
+
+        override fun onPostExecute() {
+            super.onPostExecute()
+        }
+*/
+        override fun onProgressUpdate(vararg progress: String?) {
+            super.onProgressUpdate()
+
+            progressBar.requestLayout()
+            progressBar.getLayoutParams().width = (8.0 * progress[0]!!.toFloat()).toInt()
+
+            val bounds = Rect()
+            percentageText.getPaint().getTextBounds(progress[0]!!.toString(), 0, progress[0]!!.length, bounds)
+
+            percentageText.setX(((screenWidth / 2) - (bounds.width() / 2)).toFloat())
+            percentageText.setText(progress[0])
+        }
+
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val displayInCutoutArea = PreferenceManager.getDefaultSharedPreferences(this).getBoolean("pref_display_cutout_area", true)
+        if (displayInCutoutArea || android.os.Build.VERSION.SDK_INT < 30) {
+            window.attributes.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+
         KeepScreenOn()
         getPathToJni(filesDir.parent, Constants.USER_FILE_STORAGE)
-        showControls()
+        if(Os.getenv("OPENMW_GENERATE_NAVMESH_CACHE") == "1")
+            showProgressBar()
+        else
+            showControls()
     }
 
     private fun showControls() {
@@ -161,7 +264,7 @@ class GameActivity : SDLActivity() {
 
     override fun getArguments(): Array<String> {
         val cmd = PreferenceManager.getDefaultSharedPreferences(this).getString("commandLine", "")
-        val commandlineParser = CommandlineParser(cmd!!)
+        val commandlineParser = CommandlineParser("--resources " + Constants.USER_FILE_STORAGE + "/resources " + cmd!!)
         return commandlineParser.argv
     }
 
