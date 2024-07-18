@@ -185,7 +185,7 @@ find build/$ARCH/vsgopenmw-prefix/ -iname "libopenmw.so" -exec cp "{}" ../app/sr
 cp tool/libdelta_plugin.so ../app/src/main/jniLibs/$ABI/
 
 # copy over libs we compiled
-cp prefix/$ARCH/lib/{libopenal,libSDL2,libhidapi,libdelta_plugin,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
+cp prefix/$ARCH/lib/{libopenal,libSDL2,libhidapi,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
 
 # copy over libc++_shared
 find ./toolchain/$ARCH/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
@@ -216,7 +216,7 @@ echo "==> Making your debugging life easier"
 
 # copy unstripped libs to aid debugging
 rm -rf "./symbols/$ABI/" && mkdir -p "./symbols/$ABI/"
-cp "./build/$ARCH/vsgopenal-prefix/src/vsgopenal-build/libopenal.so" "./symbols/$ABI/"
+cp "./build/$ARCH/openal-prefix/src/openal-build/libopenal.so" "./symbols/$ABI/"
 cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libSDL2.so" "./symbols/$ABI/"
 cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libhidapi.so" "./symbols/$ABI/"
 cp "./build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
