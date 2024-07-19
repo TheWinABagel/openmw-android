@@ -632,7 +632,7 @@ class MainActivity : AppCompatActivity() {
 	// Engine Settings
 	writeSetting("Groundcover", "enabled", if(prefs.getString("gs_groundcover_handling", "0") == "2") "true" else "false")
 	writeSetting("Groundcover", "paging", if(prefs.getString("gs_groundcover_handling", "0") == "1") "true" else "false")
-	writeSetting("Navigator", "enable", if(prefs.getBoolean("gs_build_navmesh", true)) "true" else "false")
+	writeSetting("Navigator", "enable", if(prefs.getBoolean("gs_build_navmesh", false)) "true" else "false")
 	writeSetting("Navigator", "write to navmeshdb", if(prefs.getBoolean("gs_write_navmesh", false)) "true" else "false")
 	writeSetting("Navigator", "async nav mesh updater threads", prefs.getString("gs_navmesh_threads", "1").toString())
 	writeSetting("Physics", "async num threads", prefs.getString("gs_physics_threads", "1").toString())
