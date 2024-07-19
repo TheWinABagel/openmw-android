@@ -48,7 +48,7 @@ set(LIBICU_VERSION 70-1)
 set(LIBICU_HASH SHA256=4013d7aff8a34bae410664bdb16554d7eda03654b22627b9284ab55a685492d4)
 
 # https://github.com/OpenMW/openmw/commits/master
-set(VSGOPENMW_VERSION 0.2)
+set(VSGOPENMW_VERSION 0.3)
 set(OPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
 
 # End of configurable options
@@ -461,47 +461,6 @@ ExternalProject_Add(libcollada
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
 )
 
-set(VSG_COMMON
-    -DDYNAMIC_OPENTHREADS=OFF
-    -DBUILD_VSG_PLUGIN_VSG=ON
-    -DBUILD_VSG_PLUGIN_DAE=ON
-    -DBUILD_VSG_PLUGIN_DDS=ON
-    -DBUILD_VSG_PLUGIN_TGA=ON
-    -DBUILD_VSG_PLUGIN_BMP=ON
-    -DBUILD_VSG_PLUGIN_JPEG=ON
-    -DBUILD_VSG_PLUGIN_PNG=ON
-    -DBUILD_VSG_PLUGIN_FREETYPE=ON
-    -DOSG_CPP_EXCEPTIONS_AVAILABLE=TRUE
-    -DJPEG_INCLUDE_DIR=${PREFIX}/include/
-    -DPNG_INCLUDE_DIR=${PREFIX}/include/
-    -DFREETYPE_DIR=${PREFIX}/include/
-    -DCOLLADA_INCLUDE_DIR=${PREFIX}/include/collada-dom2.5
-    -DCOLLADA_DIR=${PREFIX}/include/collada-dom2.5/1.4
-    -DVulkan_FIND_VERSION=${CMAKE_SOURCE_DIR}/toolchain/ndk/sources/third_party/vulkan/src/include
-    -DOSG_FIND_3RD_PARTY_DEPS=OFF
-)
-
-set(VSG_PATCH
-
-)
-
-ExternalProject_Add(vsg
-	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
-
-	URL https://github.com/vsg-dev/VulkanSceneGraph/archive/refs/tags/v1.1.6.tar.gz
-#	URL_HASH ${OPENMW_HASH}
-	DOWNLOAD_DIR ${download_dir}
-
-	PATCH_COMMAND ${VSG_PATCH}
-
-	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
-	${COMMON_CMAKE_ARGS}
-	${VSG_COMMON}
-	BUILD_COMMAND ${wrapper_command} $(MAKE)
-
-	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
-)
-
 set(VSGOPENMW_COMMON
 	-DBUILD_BSATOOL=0
 	-DBUILD_NIFTEST=0
@@ -530,7 +489,7 @@ set(VSGOPENMW_COMMON
 )
 
 set(VSGOPENMW_PATCH
-	cp ${CMAKE_SOURCE_DIR}/patches/openmw/defaults.bin ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw-build/defaults.bin
+	cp ${CMAKE_SOURCE_DIR}/patches/openmw/defaults.bin ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw-build/defaults.bin	
 )
 
 ExternalProject_Add(vsgopenmw
