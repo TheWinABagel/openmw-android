@@ -48,7 +48,7 @@ set(LIBICU_VERSION 70-1)
 set(LIBICU_HASH SHA256=4013d7aff8a34bae410664bdb16554d7eda03654b22627b9284ab55a685492d4)
 
 # https://github.com/OpenMW/openmw/commits/master
-set(VSGOPENMW_VERSION 0.3)
+set(VSGOPENMW_VERSION 0.1)
 set(OPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
 
 # End of configurable options
@@ -461,6 +461,29 @@ ExternalProject_Add(libcollada
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
 )
 
+set(VSG_PATCH
+	rm -rf ${CMAKE_SOURCE_DIR}/build/arm64/vsg-prefix/src/vsg &&
+	mv ${download_dir}/VulkanSceneGraph ${CMAKE_SOURCE_DIR}/build/arm64/vsg-prefix/src/vsg
+)
+
+ExternalProject_Add(vsg
+	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
+
+	DOWNLOAD_COMMAND git clone https://github.com/Duron27/VulkanSceneGraph
+#	URL https://github.com/vsg-dev/VulkanSceneGraph/archive/refs/tags/v1.1.6.tar.gz
+#	URL_HASH ${OPENMW_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	PATCH_COMMAND ${VSG_PATCH}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	${VSG_COMMON}
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
 set(VSGOPENMW_COMMON
 	-DBUILD_BSATOOL=0
 	-DBUILD_NIFTEST=0
@@ -489,14 +512,18 @@ set(VSGOPENMW_COMMON
 )
 
 set(VSGOPENMW_PATCH
+#	rm -rf ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw &&
+#	mv ${download_dir}/vsgopenmw ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw &&
+	cp ${CMAKE_SOURCE_DIR}/patches/vsg/android_rotate.patch ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw/android_rotate.patch &&
 	cp ${CMAKE_SOURCE_DIR}/patches/openmw/defaults.bin ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw-build/defaults.bin	
 )
 
 ExternalProject_Add(vsgopenmw
-	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
+	DEPENDS boost openal mygui ffmpeg vsg sdl2 bullet lz4 luajit libicu
 
 	URL https://github.com/Duron27/vsgopenmw/archive/refs/tags/${VSGOPENMW_VERSION}.tar.gz
 #	URL_HASH ${OPENMW_HASH}
+#	DOWNLOAD_COMMAND git clone -b android https://github.com/Duron27/vsgopenmw
 	DOWNLOAD_DIR ${download_dir}
 
 	PATCH_COMMAND ${VSGOPENMW_PATCH}
