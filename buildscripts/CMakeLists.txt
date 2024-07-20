@@ -519,7 +519,7 @@ set(VSGOPENMW_PATCH
 )
 
 ExternalProject_Add(vsgopenmw
-	DEPENDS boost openal mygui ffmpeg vsg sdl2 bullet lz4 luajit libicu
+	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
 
 	URL https://github.com/Duron27/vsgopenmw/archive/refs/tags/${VSGOPENMW_VERSION}.tar.gz
 #	URL_HASH ${OPENMW_HASH}
