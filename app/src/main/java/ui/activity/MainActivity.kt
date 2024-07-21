@@ -270,6 +270,18 @@ class MainActivity : AppCompatActivity() {
         this@MainActivity.startActivityForResult(intent, 1)
     }
 
+    private fun enableLogcat() {
+        val logcatFile = File(Constants.USER_CONFIG + "/openmw_logcat.txt")
+        if (logcatFile.exists()) {
+            logcatFile.delete()
+        }
+
+        val processBuilder = ProcessBuilder()
+        val commandToExecute = arrayOf("/system/bin/sh", "-c", "logcat *:W -d -f ${Constants.USER_CONFIG}/openmw_logcat.txt")
+        processBuilder.command(*commandToExecute)
+        processBuilder.redirectErrorStream(true)
+        processBuilder.start()
+    }
 
     /**
      * Set up fixed screen resolution
@@ -756,6 +768,7 @@ class MainActivity : AppCompatActivity() {
                 ))
 
 		writeUserSettings()
+        enableLogcat()
 
                 runOnUiThread {
                     obtainFixedScreenResolution()
