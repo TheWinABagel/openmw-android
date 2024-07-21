@@ -6,9 +6,6 @@
 #include <SDL_mouse.h>
 #include <SDL_events.h>
 #include <SDL_hints.h>
-#include <hardware_buffer.h>
-#include <hardware_buffer_jni.h>
-#include <GraphicBufferAllocator.h>
 
 #include <vsg/threading/OperationThreads.h>
 #include <components/vsgadapters/sdl/surface.hpp>
