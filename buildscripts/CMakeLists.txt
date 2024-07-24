@@ -277,7 +277,6 @@ ExternalProject_Add(ffmpeg
 	--arch=${ARCH}
 	--cpu=${FFMPEG_CPU}
 	--enable-version3
- 	--enable-vulkan
 	--enable-pic
 	--disable-everything
 	--disable-doc
