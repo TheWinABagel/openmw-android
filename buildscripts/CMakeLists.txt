@@ -61,7 +61,7 @@ SET(VSGXCHANGE_HASH SHA256=4dccfefed049bb6bf101036be271b9b95dbf21c8025b3b0baf197
 
 # https://github.com/OpenMW/openmw/commits/master
 set(VSGOPENMW_VERSION 0.2)
-set(VSGOPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
+set(VSGOPENMW_HASH SHA256=c219da4a48e2879ae0d399c560877cbc86be19c5569436d28aef8ee82d184124)
 
 # End of configurable options
 
