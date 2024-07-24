@@ -47,9 +47,21 @@ set(LUAJIT_HASH SHA256=1ad2e34b111c802f9d0cdf019e986909123237a28c746b21295b63c9e
 set(LIBICU_VERSION 70-1)
 set(LIBICU_HASH SHA256=4013d7aff8a34bae410664bdb16554d7eda03654b22627b9284ab55a685492d4)
 
+# https://github.com/recastnavigation/recastnavigation/
+set(RECAST_VERSION 405cc095ab3a2df976a298421974a2af83843baf)
+set(RECASH_HASH SHA256=53dd68c878fe1c9c1914f322f9581faea6d2b6660757bb5ef04e4ee1c6197723)
+
+# https://github.com/vsg-dev/VulkanSceneGraph/
+set(VSG_VERSION v1.1.6)
+set(VSG_HASH SHA256=53dd68c878fe1c9c1914f322f9581faea6d2b6660757bb5ef04e4ee1c6197723)
+
+# https://github.com/vsg-dev/vsgXchange/
+set(VSGXCHANGE_VERSION v1.0.5)
+SET(VSGXCHANGE_HASH SHA256=4dccfefed049bb6bf101036be271b9b95dbf21c8025b3b0baf1972022814f06e)
+
 # https://github.com/OpenMW/openmw/commits/master
 set(VSGOPENMW_VERSION 0.2)
-set(OPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
+set(VSGOPENMW_HASH SHA256=44d044ad0a5546216fe611fe92c37065bb07e2efeeeaac4f049dae03df313186)
 
 # End of configurable options
 
@@ -126,7 +138,7 @@ endif()
 
 ExternalProject_Add(libjpeg-turbo
 	URL https://sourceforge.net/projects/libjpeg-turbo/files/${LIBJPEG_TURBO_VERSION}/libjpeg-turbo-${LIBJPEG_TURBO_VERSION}.tar.gz/download
-	https://github.com/xyzz/openmw-deps/releases/download/v0/libjpeg-turbo-${LIBJPEG_TURBO_VERSION}.tar.gz
+
 	URL_HASH ${LIBJPEG_TURBO_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -141,7 +153,7 @@ ExternalProject_Add(libjpeg-turbo
 
 ExternalProject_Add(libpng
 	URL http://prdownloads.sourceforge.net/libpng/libpng-${LIBPNG_VERSION}.tar.xz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/libpng-${LIBPNG_VERSION}.tar.xz
+
 	URL_HASH ${LIBPNG_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -175,15 +187,17 @@ ExternalProject_Add(libicu
 )
 
 ExternalProject_Add(freetype2
+
 	URL https://download.savannah.gnu.org/releases/freetype/freetype-${FREETYPE2_VERSION}.tar.gz
-	http://prdownloads.sourceforge.net/freetype/freetype-${FREETYPE2_VERSION}.tar.gz
+
 	URL_HASH ${FREETYPE2_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-	CONFIGURE_COMMAND ${wrapper_command} <SOURCE_DIR>/configure
-	${COMMON_AUTOCONF_FLAGS}
-	--with-png=no
-
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=TRUE
+    -DWITH_BZip2=TRUE
+	-DCMAKE_DISABLE_FIND_PACKAGE_PNG=TRUE
 	BUILD_COMMAND ${wrapper_command} $(MAKE)
 
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
@@ -191,7 +205,7 @@ ExternalProject_Add(freetype2
 
 ExternalProject_Add(openal
 	URL https://github.com/kcat/openal-soft/archive/${OPENAL_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/openal-soft-${OPENAL_VERSION}.tar.gz
+
 	URL_HASH ${OPENAL_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -250,7 +264,7 @@ ExternalProject_Add(boost
 
 ExternalProject_Add(ffmpeg
 	URL http://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.bz2
-	https://github.com/xyzz/openmw-deps/releases/download/v0/ffmpeg-${FFMPEG_VERSION}.tar.bz2
+
 	URL_HASH ${FFMPEG_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -291,12 +305,12 @@ ExternalProject_Add(ffmpeg
 
 ExternalProject_Add(sdl2
 	URL https://www.libsdl.org/release/SDL2-${SDL2_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/SDL2-${SDL2_VERSION}.tar.gz
+
 #	URL_HASH ${SDL2_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-	PATCH_COMMAND """"
-	COMMAND """"
+	PATCH_COMMAND ""
+	COMMAND ""
 
 	CONFIGURE_COMMAND ""
 
@@ -310,7 +324,7 @@ ExternalProject_Add(sdl2
 
 ExternalProject_Add(bullet
 	URL https://github.com/bulletphysics/bullet3/archive/${BULLET_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/bullet3-${BULLET_VERSION}.tar.gz
+
 	URL_HASH ${BULLET_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
@@ -334,10 +348,10 @@ ExternalProject_Add(mygui
 	DEPENDS freetype2
 
 	URL https://github.com/MyGUI/mygui/archive/MyGUI${MYGUI_VERSION}.tar.gz
-        #URL_HASH ${MYGUI_HASH}
+	#URL_HASH ${MYGUI_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
-        #PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/mygui-dont-set-debug-postfix.patch
+	#PATCH_COMMAND patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/mygui-dont-set-debug-postfix.patch
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
 	${COMMON_CMAKE_ARGS}
@@ -357,7 +371,6 @@ ExternalProject_Add(mygui
 
 ExternalProject_Add(lz4
 	URL https://github.com/lz4/lz4/archive/v${LZ4_VERSION}.tar.gz
-	https://github.com/xyzz/openmw-deps/releases/download/v0/v${LZ4_VERSION}.tar.gz
 
 	URL_HASH ${LZ4_HASH}
 	DOWNLOAD_DIR ${download_dir}
@@ -402,7 +415,7 @@ ExternalProject_Add(luajit
 
 ExternalProject_Add(zlib
 	URL https://github.com/madler/zlib/archive/refs/tags/v1.2.11.tar.gz
-	URL_HASH SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff
+#	URL_HASH=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff
 	DOWNLOAD_DIR ${download_dir}
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
@@ -416,7 +429,7 @@ ExternalProject_Add(libxml
 	DEPENDS zlib
 
 	URL https://github.com/GNOME/libxml2/archive/refs/tags/v2.9.12.tar.gz
-	URL_HASH SHA256=8a4ddd706419c210b30b8978a51388937fd9362c34fc9a3d69e4fcc6f8055ee0
+#	URL_HASH 8a4ddd706419c210b30b8978a51388937fd9362c34fc9a3d69e4fcc6f8055ee0
 	DOWNLOAD_DIR ${download_dir}
 
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
@@ -441,7 +454,7 @@ ExternalProject_Add(libcollada
 	DEPENDS libxml boost
 
 	URL https://github.com/rdiankov/collada-dom/archive/v2.5.0.tar.gz
-	URL_HASH SHA256=3be672407a7aef60b64ce4b39704b32816b0b28f61ebffd4fbd02c8012901e0d
+#	URL_HASH 3be672407a7aef60b64ce4b39704b32816b0b28f61ebffd4fbd02c8012901e0d
 	DOWNLOAD_DIR ${download_dir}
 
 	PATCH_COMMAND ${LIBCOLLADA_PATCH}
@@ -458,6 +471,76 @@ ExternalProject_Add(libcollada
 
 	BUILD_COMMAND ${wrapper_command} $(MAKE)
 
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+ExternalProject_Add(recast
+	URL https://github.com/recastnavigation/recastnavigation/archive/${RECAST_VERSION}.zip
+	URL_HASH ${RECAST_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	-DRECASTNAVIGATION_DEMO=OFF
+    -DRECASTNAVIGATION_TESTS=OFF
+    -DRECASTNAVIGATION_EXAMPLES=OFF
+
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+set(VSG_COMMON
+	-DDYNAMIC_OPENTHREADS=OFF
+    -DBUILD_VSG_PLUGIN_VSG=ON
+    -DBUILD_VSG_PLUGIN_DAE=ON
+    -DBUILD_VSG_PLUGIN_DDS=ON
+    -DBUILD_VSG_PLUGIN_TGA=ON
+    -DBUILD_VSG_PLUGIN_BMP=ON
+    -DBUILD_VSG_PLUGIN_JPEG=ON
+    -DBUILD_VSG_PLUGIN_PNG=ON
+    -DBUILD_VSG_PLUGIN_FREETYPE=ON
+    -DOSG_CPP_EXCEPTIONS_AVAILABLE=TRUE
+    -DJPEG_INCLUDE_DIR=${PREFIX}/include/
+    -DPNG_INCLUDE_DIR=${PREFIX}/include/
+    -DFREETYPE_DIR=${PREFIX}/include/
+    -DCOLLADA_INCLUDE_DIR=${PREFIX}/include/collada-dom2.5
+    -DCOLLADA_DIR=${PREFIX}/include/collada-dom2.5/1.4
+    -DVulkan_FIND_VERSION=${CMAKE_SOURCE_DIR}/toolchain/ndk/sources/third_party/vulkan/src/include
+    -DOSG_FIND_3RD_PARTY_DEPS=OFF
+)
+
+set(VSG_PATCH
+
+)
+
+ExternalProject_Add(vsg
+	DEPENDS boost openal mygui ffmpeg sdl2 recast bullet lz4 luajit libicu
+
+	URL https://github.com/vsg-dev/VulkanSceneGraph/archive/refs/tags/${VSG_VERSION}.tar.gz
+	URL_HASH ${VSG_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	PATCH_COMMAND ${VSG_PATCH}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+	${VSG_COMMON}
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
+
+	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
+)
+
+ExternalProject_Add(vsgXchange
+	DEPENDS vsg
+
+	URL https://github.com/vsg-dev/vsgXchange/archive/refs/tags/${VSGXCHANGE_VERSION}.zip
+	URL_HASH ${VSGXCHANGE_HASH}
+	DOWNLOAD_DIR ${download_dir}
+
+	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
+	${COMMON_CMAKE_ARGS}
+
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
 	INSTALL_COMMAND ${wrapper_command} $(MAKE) install
 )
 
@@ -496,10 +579,10 @@ set(VSGOPENMW_PATCH
 )
 
 ExternalProject_Add(vsgopenmw
-	DEPENDS boost openal mygui ffmpeg sdl2 bullet lz4 luajit libicu
+	DEPENDS boost openal mygui vsg recast ffmpeg vsgXchange sdl2 bullet lz4 luajit libicu
 
 	URL https://github.com/Duron27/vsgopenmw/archive/refs/tags/${VSGOPENMW_VERSION}.tar.gz
-#	URL_HASH ${OPENMW_HASH}
+	URL_HASH ${VSGOPENMW_HASH}
 	DOWNLOAD_DIR ${download_dir}
 
 	PATCH_COMMAND ${VSGOPENMW_PATCH}
@@ -507,7 +590,7 @@ ExternalProject_Add(vsgopenmw
 	CONFIGURE_COMMAND ${wrapper_command} cmake <SOURCE_DIR>
 	${COMMON_CMAKE_ARGS}
 	${VSGOPENMW_COMMON}
-	BUILD_COMMAND $(MAKE)
+	BUILD_COMMAND ${wrapper_command} $(MAKE)
 
 	INSTALL_COMMAND ""
 )
