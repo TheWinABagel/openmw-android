@@ -52,8 +52,8 @@ set(RECAST_VERSION 405cc095ab3a2df976a298421974a2af83843baf)
 set(RECASH_HASH SHA256=53dd68c878fe1c9c1914f322f9581faea6d2b6660757bb5ef04e4ee1c6197723)
 
 # https://github.com/vsg-dev/VulkanSceneGraph/
-set(VSG_VERSION v1.1.6)
-set(VSG_HASH SHA256=53dd68c878fe1c9c1914f322f9581faea6d2b6660757bb5ef04e4ee1c6197723)
+set(VSG_VERSION v1.0.9)
+set(VSG_HASH SHA256=9a62be7facc13c391c33dc8356b147a3b86f531ea72a28f6b2c364777e761412)
 
 # https://github.com/vsg-dev/vsgXchange/
 set(VSGXCHANGE_VERSION v1.0.5)
@@ -572,8 +572,8 @@ set(VSGOPENMW_COMMON
 )
 
 set(VSGOPENMW_PATCH
-	cp ${CMAKE_SOURCE_DIR}/patches/vsg/android_rotate.patch ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw/android_rotate.patch &&
-#	cp ${CMAKE_SOURCE_DIR}/patches/vsg/renderpass.patch ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw/renderpass.patch &&
+#	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/build_android_library.patch &&
+	patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/openmw/warnings.patch &&
 	cp ${CMAKE_SOURCE_DIR}/patches/openmw/android_main.cpp ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw/apps/openmw/ &&
 	cp ${CMAKE_SOURCE_DIR}/patches/openmw/defaults.bin ${CMAKE_SOURCE_DIR}/build/arm64/vsgopenmw-prefix/src/vsgopenmw-build/defaults.bin
 )
