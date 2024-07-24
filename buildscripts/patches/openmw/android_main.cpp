@@ -42,15 +42,15 @@ extern "C" int Java_org_libsdl_app_SDLActivity_isMouseShown(JNIEnv *env, jclass 
     return SDL_ShowCursor(SDL_QUERY);
 }
 
-extern SDL_Window *Android_Window;
+extern SDL_Window *ANativeWindow;
 extern "C" int SDL_SendMouseMotion(SDL_Window * window, int mouseID, int relative, int x, int y);
 extern "C" void Java_org_libsdl_app_SDLActivity_sendRelativeMouseMotion(JNIEnv *env, jclass cls, int x, int y) {
-    SDL_SendMouseMotion(Android_Window, 0, 1, x, y);
+    SDL_SendMouseMotion(ANativeWindow, 0, 1, x, y);
 }
 
 extern "C" int SDL_SendMouseButton(SDL_Window * window, int mouseID, Uint8 state, Uint8 button);
 extern "C" void Java_org_libsdl_app_SDLActivity_sendMouseButton(JNIEnv *env, jclass cls, int state, int button) {
-    SDL_SendMouseButton(Android_Window, 0, state, button);
+    SDL_SendMouseButton(ANativeWindow, 0, state, button);
 }
 
 extern "C" int Java_org_libsdl_app_SDLActivity_nativeInit(JNIEnv* env, jclass cls, jobject obj) {
