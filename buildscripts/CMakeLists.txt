@@ -510,7 +510,7 @@ set(VSG_COMMON
 )
 
 set(VSG_PATCH
-
+    patch -d <SOURCE_DIR> -p1 -t -N < ${CMAKE_SOURCE_DIR}/patches/vsg/android_rotate.patch
 )
 
 ExternalProject_Add(vsg
