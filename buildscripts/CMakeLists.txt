@@ -302,6 +302,7 @@ ExternalProject_Add(sdl2
 
 	BUILD_COMMAND ${wrapper_command} ndk-build
 	${COMMON_NDK_BUILD_FLAGS}
+ 	-DSDL_VULKAN=ON
 
 	INSTALL_COMMAND mkdir -p ${prefix}/lib/
 	COMMAND cp libs/${app_abi}/libSDL2.so ${prefix}/lib/
