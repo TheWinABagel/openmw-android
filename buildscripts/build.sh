@@ -4,235 +4,101 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-export ARCH="arm"
-export CCACHE="false"
-ASAN="false"
-DEPLOY_RESOURCES="true"
-LTO="false"
-BUILD_TYPE="release"
-CFLAGS="-fPIC"
-CXXFLAGS="-fPIC -frtti -fexceptions"
-LDFLAGS="-Wl,--undefined-version"
+export API="24"
+export NDK_VERSION="r26b"
 
-usage() {
-	echo "Usage: ./build.sh [--help] [--asan] [--arch arch] [--debug|--release]"
-	echo "	--help: print this message"
-	echo "	--arch: build for specified architecture [arm, arm64, x86_64, x86] (default: arm)"
-	echo "	--asan: build with AddressSanitizer enabled"
-	echo "	--no-resources: don't deploy the resources (used in full-build.sh)"
-	echo "	--lto: use LTO for linking"
-	echo "	--ccache: use ccache to speed up repeated builds"
-	echo "	--debug: produce a debug build without optimizations"
-	echo "	--release: produce a release build with optimizations (default)"
-	exit 0
-}
+export OPENMW_VERSION=317aee134f18e5fe3594a4f5ce76df1ed1a34f78
 
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-	key="$1"
+export BUILD_TYPE="release"
+export CXXFLAGS="-fPIC -O3 -frtti -fexceptions -flto=thin"
+export LDFLAGS="-fPIC -Wl,--undefined-version"
 
-	case $key in
-		--help)
-			usage
-			shift
-			;;
-		--arch)
-			export ARCH="$2"
-			shift 2
-			;;
-		--asan)
-			ASAN=true
-			shift
-			;;
-		--lto)
-			LTO=true
-			shift
-			;;
-		--ccache)
-			export CCACHE="true"
-			shift
-			;;
-		--debug)
-			BUILD_TYPE="debug"
-			shift
-			;;
-		--release)
-			BUILD_TYPE="release"
-			shift
-			;;
-		--no-resources)
-			DEPLOY_RESOURCES="false"
-			shift
-			;;
-		*)
-			echo "Invalid argument: $key"
-			exit 1
-			;;
-	esac
-done
-
-if [[ $ASAN = true && $ARCH != "arm" && $ARCH != "arm64" ]]; then
-	echo "AddressSanitizer is only supported on arm and aarch64 architectures"
-	exit 1
-fi
-
-source ./include/version.sh
-
-if [ $ASAN = true ]; then
-	CFLAGS="$CFLAGS -fsanitize=address -fuse-ld=gold -fno-omit-frame-pointer"
-	CXXFLAGS="$CXXFLAGS -fsanitize=address -fuse-ld=gold -fno-omit-frame-pointer"
-	LDFLAGS="$LDFLAGS -fsanitize=address -fuse-ld=gold -fno-omit-frame-pointer"
-fi
-
-if [ $BUILD_TYPE = "release" ]; then
-	CFLAGS="$CFLAGS -O3"
-	CXXFLAGS="$CXXFLAGS -O3"
+# Download NDK and unzip
+if [[ -d android-ndk-${NDK_VERSION} ]]; then
+	echo "We've already downloaded and installed NDK version ${NDK_VERSION}"
 else
-	CFLAGS="$CFLAGS -O0 -g"
-	CXXFLAGS="$CXXFLAGS -O0 -g"
+	echo "Downloading and unzipping the NDK"
+	wget -q https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip && unzip android-ndk-${NDK_VERSION}-linux.zip -d $DIR/
+	rm android-ndk-${NDK_VERSION}-linux.zip
 fi
 
-if [[ $LTO = "true" ]]; then
-	CFLAGS="$CFLAGS -flto=thin"
-	CXXFLAGS="$CXXFLAGS -flto=thin"
-	# emulated-tls should not be needed in ndk r18 https://github.com/android-ndk/ndk/issues/498#issuecomment-327825754
-	LDFLAGS="$LDFLAGS -flto=thin -Wl,-plugin-opt=-emulated-tls -fuse-ld=lld"
+# Download Prebuilt Libraries and extract
+if [[ -d $DIR/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/man ]]; then
+	echo "We've already downloaded the shared libraries"
+else
+	echo "==> Installing shared libraries"
+	wget -c https://gitlab.com/cavebros/openmw-deps/-/raw/main/android/openmw-android-deps-20240812.tar.xz -O - | tar -xJ -C $DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr
 fi
 
-if [[ $ARCH = "arm" ]]; then
-	CFLAGS="$CFLAGS -mthumb"
-	CXXFLAGS="$CXXFLAGS -mthumb"
+# Download openmw
+if [[ -f $DIR/openmw-${OPENMW_VERSION}/build/libopenmw.so ]]; then
+	echo "We've already compiled openmw for android!"
+else
+	echo "Downloading, applying patches and compiling openmw for android!"
+	rm -rf $DIR/openmw-${OPENMW_VERSION}
+	wget -c https://github.com/OpenMW/openmw/archive/${OPENMW_VERSION}.tar.gz -O - | tar -xz -C .
+
+	# Elsids Android Library Patch
+	wget -qO- https://gitlab.com/OpenMW/openmw/-/merge_requests/4221.patch | patch -d $DIR/openmw-${OPENMW_VERSION}/ -p1 -t -N
+
+	# Removing the top 4 lines since after API 23 int cant be used for sdtout
+	sed -i '1,4d' $DIR/openmw-${OPENMW_VERSION}/apps/openmw/android_main.cpp
+
+	mkdir -p $DIR/openmw-${OPENMW_VERSION}/build && cd $_
+	cmake ../ \
+		-DANDROID_ABI=arm64-v8a \
+		-DANDROID_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS=ON \
+		-DANDROID_CPP_FEATURES= \
+		-DANDROID_PLATFORM=${API} \
+		-DANDROID_STL=c++_shared \
+		-DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+		-DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+		-DCMAKE_TOOLCHAIN_FILE=$DIR/android-ndk-${NDK_VERSION}/build/cmake/android.toolchain.cmake \
+		-DBUILD_BSATOOL=0 \
+		-DBUILD_BULLETOBJECTTOOL=0 \
+		-DBUILD_ESMTOOL=0 \
+		-DBUILD_ESSIMPORTER=0 \
+		-DBUILD_LAUNCHER=0 \
+		-DBUILD_MWINIIMPORTER=0 \
+		-DBUILD_NAVMESHTOOL=0 \
+		-DBUILD_NIFTEST=0 \
+		-DBUILD_OPENCS=0 \
+		-DBUILD_WIZARD=0 \
+		-DMyGUI_LIBRARY=$DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/libMyGUIEngineStatic.a \
+		-DOPENMW_USE_SYSTEM_ICU=ON \
+		-DOPENMW_USE_SYSTEM_SQLITE3=OFF \
+		-DOPENMW_USE_SYSTEM_YAML_CPP=OFF \
+		-DOSG_STATIC=TRUE
+
+	make -j $(nproc)
+	cd ..
 fi
 
-echo ""
-echo "================================================================================"
-echo ""
-echo "Build configuration:"
-echo " - Architecture: $ARCH"
-echo " - Build type: $BUILD_TYPE"
-echo " - AddressSanitizer: $ASAN"
-echo ""
-echo " ------------------------------------------------------------------------------ "
-echo ""
-echo "Computed flags:"
-echo " - CFLAGS: $CFLAGS"
-echo " - CXXFLAGS: $CXXFLAGS"
-echo " - LDFLAGS: $LDFLAGS"
-echo ""
-echo "================================================================================"
-echo "(Please run ./clean.sh manually if you modify any of the options)"
-echo ""
-
-echo "==> Download and set up the NDK"
-./include/download-ndk.sh
-./include/setup-ndk.sh
-./include/setup-icu.sh
-
-NCPU=$(grep -c ^processor /proc/cpuinfo)
-echo "==> Build using $NCPU CPUs"
-mkdir -p build/$ARCH/
-mkdir -p prefix/$ARCH/
-
-# symlink lib64 -> lib so we don't get half the libs in one directory half in another
-mkdir -p prefix/$ARCH/lib
-ln -sf lib prefix/$ARCH/lib64
-mkdir -p prefix/$ARCH/vsg/lib
-ln -sf lib prefix/$ARCH/vsg/lib64
-
-# generate command_wrapper.sh
-cat include/command_wrapper_head.sh.in | \
-	DIR=$DIR \
-	ARCH=$ARCH \
-	ENV_CFLAGS=$CFLAGS \
-	ENV_CXXFLAGS=$CXXFLAGS \
-	NDK_TRIPLET=$NDK_TRIPLET \
-	ENV_LDFLAGS=$LDFLAGS \
-		envsubst > build/$ARCH/command_wrapper.sh
-cat include/command_wrapper_tail.sh.in >> build/$ARCH/command_wrapper.sh
-chmod +x build/$ARCH/command_wrapper.sh
-
-pushd build/$ARCH/
-
-# Get CC/CXX/etc vars
-source ./command_wrapper.sh true
-
-# Build!
-cmake ../.. \
-	-DCMAKE_INSTALL_PREFIX=$DIR/prefix/$ARCH/ \
-	-DARCH=$ARCH \
-	-DBUILD_TYPE=$BUILD_TYPE \
-	-DNDK_TRIPLET=$NDK_TRIPLET \
-	-DANDROID_API=$ANDROID_API \
-	-DABI=$ABI \
-	-DBOOST_ARCH=$BOOST_ARCH \
-	-DBOOST_ADDRESS_MODEL=$BOOST_ADDRESS_MODEL \
-	-DLUAJIT_HOST_CC="$LUAJIT_HOST_CC" \
-	-DFFMPEG_CPU=$FFMPEG_CPU
-make -j$NCPU
-
-popd
-
-echo "==> Installing shared libraries"
-
-rm -rf ../app/wrap/
 rm -rf ../app/src/main/jniLibs/$ABI/
 mkdir -p ../app/src/main/jniLibs/$ABI/
 
 # libopenmw.so is a special case
-find build/$ARCH/vsgopenmw-prefix/ -iname "libopenmw.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/libopenmw.so \;
-
-# copy delta_plugin to lib location
-cp tool/libdelta_plugin.so ../app/src/main/jniLibs/$ABI/
+find $DIR/openmw-${OPENMW_VERSION}/build -iname "libopenmw.so" -exec cp "{}" $DIR/../app/src/main/jniLibs/$ABI/libopenmw.so \;
 
 # copy over libs we compiled
-cp prefix/$ARCH/lib/{libopenal,libSDL2,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
-
+cp $DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/{libopenal,libSDL2,libGL,libcollada-dom2.5-dp}.so ../app/src/main/jniLibs/$ABI/
 # copy over libc++_shared
-find ./toolchain/$ARCH/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
+find $DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$NDK_TRIPLET -iname "libc++_shared.so" -exec cp "{}" ../app/src/main/jniLibs/$ABI/ \;
 
-if [[ $DEPLOY_RESOURCES = "true" ]]; then
-	echo "==> Deploying resources"
+echo "==> Deploying resources"
+DST=$DIR/../app/src/main/assets/libopenmw/
+SRC=$DIR/openmw-${OPENMW_VERSION}/build/
 
-	DST=$DIR/../app/src/main/assets/libopenmw/
-	SRC=build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/
+rm -rf "$DST" && mkdir -p "$DST"
 
-	rm -rf "$DST" && mkdir -p "$DST"
+# resources
+cp -r "$SRC/resources" "$DST"
 
-	# resources
-	cp -r "$SRC/resources" "$DST"
-
-	# global config
-	mkdir -p "$DST/openmw/"
-	cp "$SRC/defaults.bin" "$DST/openmw/"
- 	cp "$SRC/defaults.cfg" "$DST/openmw/"
-	cp "$SRC/gamecontrollerdb.txt" "$DST/openmw/"
-	cat "$SRC/openmw.cfg" | grep -v "data=" | grep -v "data-local=" >> "$DST/openmw/openmw.base.cfg"
-	cat "$DIR/../app/openmw.base.cfg" >> "$DST/openmw/openmw.base.cfg"
-
-	# licensing info
-	cp "$DIR/../3rdparty-licenses.txt" "$DST"
-fi
-
-echo "==> Making your debugging life easier"
-
-# copy unstripped libs to aid debugging
-rm -rf "./symbols/$ABI/" && mkdir -p "./symbols/$ABI/"
-cp "./build/$ARCH/openal-prefix/src/openal-build/libopenal.so" "./symbols/$ABI/"
-cp "./build/$ARCH/sdl2-prefix/src/sdl2-build/obj/local/$ABI/libSDL2.so" "./symbols/$ABI/"
-cp "./build/$ARCH/vsgopenmw-prefix/src/vsgopenmw-build/libopenmw.so" "./symbols/$ABI/libopenmw.so"
-cp "../app/src/main/jniLibs/$ABI/libc++_shared.so" "./symbols/$ABI/"
-
-if [ $ASAN = true ]; then
-	cp ./toolchain/$ARCH/lib64/clang/*/lib/linux/libclang_rt.asan-$ASAN_ARCH-android.so "./symbols/$ABI/"
-	cp ./toolchain/$ARCH/lib64/clang/*/lib/linux/libclang_rt.asan-$ASAN_ARCH-android.so "../app/src/main/jniLibs/$ABI/"
-	mkdir -p ../app/wrap/res/lib/$ABI/
-	sed "s/@ASAN_ARCH@/$ASAN_ARCH/g" < include/asan-wrapper.sh > "../app/wrap/res/lib/$ABI/wrap.sh"
-	chmod +x "../app/wrap/res/lib/$ABI/wrap.sh"
-fi
-
-#PATH="$DIR/toolchain/ndk/prebuilt/linux-x86_64/bin/:$DIR/toolchain/$ARCH/$NDK_TRIPLET/bin/:$PATH" ./include/gdb-add-index ./symbols/$ABI/*.so
-
-# gradle should do it, but just in case...
-llvm-strip ../app/src/main/jniLibs/$ABI/*.so
+# global config
+mkdir -p "$DST/openmw/"
+cp "$SRC/defaults.bin" "$DST/openmw/"
+cp "$SRC/gamecontrollerdb.txt" "$DST/openmw/"
+cat "$SRC/openmw.cfg" | grep -v "data=" | grep -v "data-local=" >> "$DST/openmw/openmw.base.cfg"
+cat "$DIR/../app/openmw.base.cfg" >> "$DST/openmw/openmw.base.cfg"
 
 echo "==> Success"
