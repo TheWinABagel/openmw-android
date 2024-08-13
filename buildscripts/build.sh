@@ -7,6 +7,7 @@ cd $DIR
 export API="24"
 export NDK_VERSION="r26b"
 
+export SHARED_LIBRARIES=20240812
 export OPENMW_VERSION=317aee134f18e5fe3594a4f5ce76df1ed1a34f78
 
 export BUILD_TYPE="release"
@@ -15,7 +16,7 @@ export LDFLAGS="-fPIC -Wl,--undefined-version"
 
 # Download NDK and unzip
 if [[ -d android-ndk-${NDK_VERSION} ]]; then
-	echo "We've already downloaded and installed NDK version ${NDK_VERSION}"
+	echo "NDK version ${NDK_VERSION} already installed!"
 else
 	echo "Downloading and unzipping the NDK"
 	wget -q https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip && unzip android-ndk-${NDK_VERSION}-linux.zip -d $DIR/
@@ -24,15 +25,15 @@ fi
 
 # Download Prebuilt Libraries and extract
 if [[ -d $DIR/android-ndk-r26b/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/man ]]; then
-	echo "We've already downloaded the shared libraries"
+	echo "shared libraries openmw-android-deps-${SHARED_LIBRARIES} already installed!"
 else
 	echo "==> Installing shared libraries"
-	wget -c https://gitlab.com/cavebros/openmw-deps/-/raw/main/android/openmw-android-deps-20240812.tar.xz -O - | tar -xJ -C $DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr
+	wget -c https://gitlab.com/cavebros/openmw-deps/-/raw/main/android/openmw-android-deps-${SHARED_LIBRARIES}.tar.xz -O - | tar -xJ -C $DIR/android-ndk-${NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr
 fi
 
 # Download openmw
 if [[ -f $DIR/openmw-${OPENMW_VERSION}/build/libopenmw.so ]]; then
-	echo "We've already compiled openmw for android!"
+	echo "OpenMW already installed using NDK version ${NDK_VERSION}!"
 else
 	echo "Downloading, applying patches and compiling openmw for android!"
 	rm -rf $DIR/openmw-${OPENMW_VERSION}
