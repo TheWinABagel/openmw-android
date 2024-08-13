@@ -28,36 +28,24 @@ jobs:
       run: |
         export PATH=/home/runner/cmake-$CMAKE_VERSION-Linux-x86_64/bin/:$PATH
         cd buildscripts
-        ./build.sh --arch ${{ matrix.arch }}
+        ./build.sh
 
     - name: Build the APK
       run: |
-        ARCH=${{ matrix.arch }} source buildscripts/include/version.sh
         sed -i "s/abiFilters.*/abiFilters '$ABI'/" app/build.gradle
-        export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
+        export ANDROID_NDK_HOME=$(pwd)/buildscripts/android-ndk-r26b/
         ./gradlew assembleNightlyDebug
-
-    - name: Compress symbols
-      run: |
-        cd buildscripts
-        ./package-symbols.sh
-        mv symbols.7z ../symbols-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.7z
 
     - name: Collect outputs
       id: getfilename
       run: |
         mv app/build/outputs/apk/nightly/debug/omw_debug_*.apk omw-debug-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.apk
         echo "apk_file=$(ls omw-debug-*.apk | sed 's/\(.*\)\..*/\1/')" >> $GITHUB_ENV
-        echo "symbols_file=$(ls symbols-*.7z | sed 's/\(.*\)\..*/\1/')" >> $GITHUB_ENV
-
+        
     - name: Upload the APK
       uses: actions/upload-artifact@v3
       with:
         name: ${{ env.apk_file }}
         path: ${{ env.apk_file }}.apk
 
-    - name: Upload debug symbols
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.symbols_file }}
-        path: ${{ env.symbols_file }}.7z
+    
