@@ -49,7 +49,7 @@ jobs:
     - name: Collect outputs
       id: getfilename
       run: |
-        mv app/build/outputs/apk/nightly/debug/omw_debug_*.apk omw-debug-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.apk
+        mv app/build/outputs/apk/debug/app-debug*.apk omw-debug-$(git rev-parse --short "$GITHUB_SHA")-${{ matrix.arch }}.apk
         echo "apk_file=$(ls omw-debug-*.apk | sed 's/\(.*\)\..*/\1/')" >> $GITHUB_ENV
         echo "symbols_file=$(ls symbols-*.7z | sed 's/\(.*\)\..*/\1/')" >> $GITHUB_ENV
 
