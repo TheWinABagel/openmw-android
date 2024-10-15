@@ -33,7 +33,6 @@ jobs:
     - name: Build the APK
       run: |
         ARCH=${{ matrix.arch }} source buildscripts/include/version.sh
-        sed -i "s/abiFilters.*/abiFilters '$ABI'/" app/build.gradle.kts
         export ANDROID_NDK_HOME=$(pwd)/buildscripts/toolchain/ndk/
         ./gradlew assembleDebug
 
