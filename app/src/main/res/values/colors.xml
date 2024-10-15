@@ -1,34 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#2196F3</color>
-    <color name="colorPrimaryDark">#1976D2</color>
-    <color name="colorAccent">#FF4081</color>
-
-    <color name="modItemBackgroundColor">#FFFFFF</color>
-    <color name="modItemSelectedColor">#999999</color>
-    <color name="modItemTextColor">#000000</color>
-
-    <color name="statusBarColor">#1976D2</color>
-
-    <!-- Storage Chooser -->
-    <array name="default_light">
-        <!-- Overview -->
-        <item>@color/colorPrimary</item> <!--  Top Header bg -->
-        <item>@android:color/white</item> <!-- header text   -->
-        <item>@android:color/white</item> <!-- list bg  -->
-        <item>@android:color/black</item> <!--  storage list name text  -->
-        <item>@color/colorPrimary</item> <!-- free space text  -->
-        <item>@color/colorAccent</item> <!-- memory bar -->
-
-        <!-- secondary dialog colors -->
-        <item>@color/colorPrimary</item> <!-- folder icon color -->
-        <item>@android:color/white</item> <!-- list bg -->
-        <item>@android:color/black</item> <!-- list text -->
-        <item>@android:color/white</item> <!-- address bar text color -->
-        <item>@color/chevronBgColor</item> <!-- new folder hint tint -->
-        <item>#da6c6c</item> <!-- select button color -->
-        <item>#da6c6c</item> <!-- new folder layour bg -->
-        <item>#da6c6c</item> <!-- new folder layour bg -->
-        <item>@color/colorPrimary</item> <!-- new folder layour bg -->
-    </array>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
 </resources>

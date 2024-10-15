@@ -1,22 +1,16 @@
-// enable if API 22 or below // int stderr = 0; // Hack: fix linker error
+#if defined(stderr) && (!defined(__ANDROID_API__) || __ANDROID_API__ < 23)
+int stderr = 0; // Hack: fix linker error
+#endif
 
 #include "SDL_main.h"
-#include "vsgengine.hpp"
+#include "engine.hpp"
 #include <SDL_gamecontroller.h>
 #include <SDL_mouse.h>
 #include <SDL_events.h>
 #include <SDL_hints.h>
-#include <hardware_buffer.h>
-#include <hardware_buffer_jni.h>
-#include <GraphicBufferAllocator.h>
-
-#include <vsg/threading/OperationThreads.h>
-#include <components/vsgadapters/sdl/surface.hpp>
-#include <components/vsgadapters/sdl/window.hpp>
-#include <components/vsgutil/readimage.hpp>
 
 /*******************************************************************************
- * Functions called by JNI
+ Functions called by JNI
  *******************************************************************************/
 #include <jni.h>
 
@@ -26,35 +20,6 @@ extern void SDL_Android_Init(JNIEnv* env, jclass cls);
 extern int argcData;
 extern const char **argvData;
 void releaseArgv();
-
-
-extern "C" int Java_org_libsdl_app_SDLActivity_getMouseX(JNIEnv *env, jclass cls, jobject obj) {
-    int ret = 0;
-    SDL_GetMouseState(&ret, nullptr);
-    return ret;
-}
-
-
-extern "C" int Java_org_libsdl_app_SDLActivity_getMouseY(JNIEnv *env, jclass cls, jobject obj) {
-    int ret = 0;
-    SDL_GetMouseState(nullptr, &ret);
-    return ret;
-}
-
-extern "C" int Java_org_libsdl_app_SDLActivity_isMouseShown(JNIEnv *env, jclass cls, jobject obj) {
-    return SDL_ShowCursor(SDL_QUERY);
-}
-
-extern SDL_Window *Android_Window;
-extern "C" int SDL_SendMouseMotion(SDL_Window * window, int mouseID, int relative, int x, int y);
-extern "C" void Java_org_libsdl_app_SDLActivity_sendRelativeMouseMotion(JNIEnv *env, jclass cls, int x, int y) {
-    SDL_SendMouseMotion(Android_Window, 0, 1, x, y);
-}
-
-extern "C" int SDL_SendMouseButton(SDL_Window * window, int mouseID, Uint8 state, Uint8 button);
-extern "C" void Java_org_libsdl_app_SDLActivity_sendMouseButton(JNIEnv *env, jclass cls, int state, int button) {
-    SDL_SendMouseButton(Android_Window, 0, state, button);
-}
 
 extern "C" int Java_org_libsdl_app_SDLActivity_nativeInit(JNIEnv* env, jclass cls, jobject obj) {
     setenv("OPENMW_DECOMPRESS_TEXTURES", "1", 1);
@@ -67,3 +32,4 @@ extern "C" int Java_org_libsdl_app_SDLActivity_nativeInit(JNIEnv* env, jclass cl
 
     return 0;
 }
+
