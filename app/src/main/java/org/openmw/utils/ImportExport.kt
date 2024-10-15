@@ -25,9 +25,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.openmw.Constants
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun CfgImport() {
@@ -103,3 +112,117 @@ fun copyFile(context: Context, uri: Uri, destinationFile: File) {
         }
     }
 }
+
+fun zipFilesAndDirectories(rootDirectory: File, files: List<File>, directories: List<File>, zipFile: File) {
+    ZipOutputStream(BufferedOutputStream(FileOutputStream(zipFile))).use { out ->
+        val addedEntries = mutableSetOf<String>()
+
+        // Add files to the zip
+        files.forEach { file ->
+            FileInputStream(file).use { fi ->
+                BufferedInputStream(fi).use { origin ->
+                    val entryName = file.relativeTo(rootDirectory).path
+                    if (addedEntries.add(entryName)) {
+                        val entry = ZipEntry(entryName)
+                        out.putNextEntry(entry)
+                        origin.copyTo(out, 1024)
+                        out.closeEntry()
+                    }
+                }
+            }
+        }
+
+        // Add directories to the zip
+        directories.forEach { dir ->
+            dir.walkTopDown().forEach { file ->
+                val entryName = file.relativeTo(rootDirectory).path
+                if (file.isDirectory && !addedEntries.contains(entryName)) {
+                    out.putNextEntry(ZipEntry("$entryName/"))
+                    addedEntries.add(entryName)
+                    out.closeEntry()
+                } else if (file.isFile) {
+                    FileInputStream(file).use { fi ->
+                        BufferedInputStream(fi).use { origin ->
+                            if (addedEntries.add(entryName)) {
+                                val entry = ZipEntry(entryName)
+                                out.putNextEntry(entry)
+                                origin.copyTo(out, 1024)
+                                out.closeEntry()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun exportFilesAndDirectories(context: Context) {
+    val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
+    val date = dateFormat.format(Date())
+    val zipFile = File(downloadFolder, "openmw_$date.zip")
+    val rootDirectory = File(Constants.USER_FILE_STORAGE)
+
+    try {
+        val filesToZip = listOf(
+            File("${Constants.USER_FILE_STORAGE}/config/openmw.cfg"),
+            File("${Constants.USER_FILE_STORAGE}/config/settings.cfg"),
+            File("${Constants.USER_FILE_STORAGE}/config/shaders.yaml")
+        )
+        val directoriesToZip = listOf(
+            File("${Constants.USER_FILE_STORAGE}/saves"),
+            File("${Constants.USER_FILE_STORAGE}/screenshots")
+        )
+        zipFilesAndDirectories(rootDirectory, filesToZip, directoriesToZip, zipFile)
+        Toast.makeText(context, "Files and directories zipped and exported to Downloads", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun unzipFiles(zipFile: File, targetDirectory: File) {
+    ZipInputStream(FileInputStream(zipFile)).use { zis ->
+        var entry: ZipEntry?
+        while (zis.nextEntry.also { entry = it } != null) {
+            val newFile = File(targetDirectory, entry!!.name)
+            // Create directories for subfolders
+            if (entry!!.isDirectory) {
+                newFile.mkdirs()
+            } else {
+                // Extract files
+                FileOutputStream(newFile).use { fos ->
+                    val buffer = ByteArray(1024)
+                    var len: Int
+                    while (zis.read(buffer).also { len = it } > 0) {
+                        fos.write(buffer, 0, len)
+                    }
+                }
+            }
+            zis.closeEntry()
+        }
+    }
+}
+
+fun importFilesAndDirectories(context: Context) {
+    val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val targetDirectory = File(Constants.USER_FILE_STORAGE)
+
+    try {
+        val newestZipFile = downloadFolder.listFiles { _, name ->
+            name.startsWith("openmw_") && name.endsWith(".zip")
+        }?.maxByOrNull { it.lastModified() }
+
+        if (newestZipFile != null) {
+            unzipFiles(newestZipFile, targetDirectory)
+            Toast.makeText(context, "Files and directories imported successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "No zip files found for import", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Import failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+

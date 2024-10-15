@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,16 +24,21 @@ import org.openmw.navigation.MyFloatingActionButton
 import org.openmw.navigation.MyTopBar
 import org.openmw.utils.ExpandableBox
 import org.openmw.utils.ReadAndDisplayIniValues
+import org.openmw.utils.exportFilesAndDirectories
+import org.openmw.utils.importFilesAndDirectories
 
 @ExperimentalMaterial3Api
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
     val transparentBlack = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+    var showDialog = remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             MyTopBar(context)
-        }, content = @Composable {
+        },
+        content = @Composable {
             BouncingBackground()
             Box(
                 modifier = Modifier
@@ -44,13 +50,42 @@ fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
                         .padding(top = 40.dp, bottom = 60.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
-
                 ) {
                     ReadAndDisplayIniValues()
                     ExpandableBox(expanded = remember { mutableStateOf(false) })
+
+                    Button(onClick = { exportFilesAndDirectories(context) }) {
+                        Text(text = "Backup all saves, config files and screenshots", color = Color.White)
+                    }
+
+                    Button(onClick = { showDialog.value = true }) {
+                        Text(text = "Restore all saves, config files and screenshots", color = Color.White)
+                    }
+                }
+
+                if (showDialog.value) {
+                    AlertDialog(
+                        onDismissRequest = { showDialog.value = false },
+                        title = { Text("Confirm Import") },
+                        text = { Text("Are you sure you want to restore all saves, config files, and screenshots?") },
+                        confirmButton = {
+                            Button(onClick = {
+                                importFilesAndDirectories(context)
+                                showDialog.value = false
+                            }) {
+                                Text("Yes")
+                            }
+                        },
+                        dismissButton = {
+                            Button(onClick = { showDialog.value = false }) {
+                                Text("No")
+                            }
+                        }
+                    )
                 }
             }
-        }, bottomBar = {
+        },
+        bottomBar = {
             BottomAppBar(
                 containerColor = transparentBlack,
                 actions = {

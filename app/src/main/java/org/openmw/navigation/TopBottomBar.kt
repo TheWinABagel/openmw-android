@@ -195,10 +195,15 @@ fun MyFloatingActionButton(context: Context) {
 
     FloatingActionButton(
         onClick = {
-            val intent = Intent(context, EngineActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val uri = getGameFilesUri(context)
+            if (uri != null && uri.contains("Morrowind")) {
+                val intent = Intent(context, EngineActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            } else {
+                Toast.makeText(context, "Morrowind folder not found. Please select game files.", Toast.LENGTH_LONG).show()
             }
-            context.startActivity(intent)
         },
         containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f),
         elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
