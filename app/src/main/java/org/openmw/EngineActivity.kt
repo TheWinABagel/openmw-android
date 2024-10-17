@@ -1,16 +1,25 @@
 package org.openmw
 
+import android.content.Context
 import android.os.Bundle
 import android.os.Process
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
+import android.widget.Button
+import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
+import org.openmw.ui.overlay.OverlayUI
 import org.openmw.utils.LogCat
+import android.view.KeyEvent
+import android.view.inputmethod.InputMethodManager
+
 
 class EngineActivity : SDLActivity() {
 
@@ -31,6 +40,7 @@ class EngineActivity : SDLActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.engine_activity)
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Hide the system bars
@@ -47,6 +57,19 @@ class EngineActivity : SDLActivity() {
         Log.d("EngineActivity", "USER_FILE_STORAGE: ${Constants.USER_FILE_STORAGE}")
 
         getPathToJni(filesDir.parent!!, Constants.USER_FILE_STORAGE)
+
+        // Add SDL view programmatically
+        val sdlView = SDLActivity.getContentView()
+        val sdlContainer = findViewById<FrameLayout>(R.id.sdl_container)
+        sdlContainer.addView(sdlView) // Add SDL view to the sdl_container
+
+        // Setup Compose overlay
+        val composeView = findViewById<ComposeView>(R.id.compose_overlay)
+        composeView.setContent {
+            MaterialTheme {
+                OverlayUI()
+            }
+        }
     }
 
     private fun setEnvironmentVariables() {

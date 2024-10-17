@@ -3,8 +3,10 @@ package org.openmw
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.WindowInsets
 import android.view.WindowManager
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -47,6 +49,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.window.layout.WindowMetrics
 import androidx.window.layout.WindowMetricsCalculator
 import kotlinx.coroutines.delay
+import org.libsdl.app.SDLActivity
 import org.openmw.ui.theme.OpenMWTheme
 import org.openmw.utils.CaptureCrash
 import org.openmw.utils.ModValue
@@ -64,7 +67,6 @@ object GameFilesPreferences {
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
 
-    @RequiresApi(Build.VERSION_CODES.R)
     @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
