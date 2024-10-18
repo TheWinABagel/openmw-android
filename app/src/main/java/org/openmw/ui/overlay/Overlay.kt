@@ -1,17 +1,13 @@
 package org.openmw.ui.overlay
 
-import android.R.attr.visible
 import android.content.Context
-import android.graphics.Rect
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.KeyEvent
-import android.view.MotionEvent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -58,6 +54,11 @@ data class MemoryInfo(
     val usedMemory: String
 )
 
+object UIStateManager {
+    var isUIHidden by mutableStateOf(false)
+    var visible by mutableStateOf(true)
+}
+
 @Composable
 fun OverlayUI() {
     val context = LocalContext.current
@@ -69,9 +70,8 @@ fun OverlayUI() {
     var isBatteryStatusEnabled by remember { mutableStateOf(false) }
     var isLoggingEnabled by remember { mutableStateOf(false) }
     var isVibrationEnabled by remember { mutableStateOf(true) }
-    var isUIHidden by remember { mutableStateOf(false) }
-    var visible by remember { mutableStateOf(true) }
-    val density = LocalDensity.current
+    val isUIHidden = UIStateManager.isUIHidden
+    val visible = UIStateManager.visible
 
     LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
@@ -172,8 +172,8 @@ fun OverlayUI() {
                         )
                         Text(text = "Hide UI", color = Color.White, fontSize = 10.sp)
                         Switch(checked = isUIHidden, onCheckedChange = {
-                            isUIHidden = it
-                            visible = !it
+                            UIStateManager.isUIHidden = it
+                            UIStateManager.visible = !it //
                         })
                     }
                 } else {
@@ -230,42 +230,7 @@ fun OverlayUI() {
             }
         }
     }
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(
-            initialOffsetY = { with(density) { -20.dp.roundToPx() } },
-            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
-        ) + expandVertically(
-            expandFrom = Alignment.Bottom,
-            animationSpec = tween(durationMillis = 1000)
-        ) + fadeIn(
-            initialAlpha = 0.3f,
-            animationSpec = tween(durationMillis = 1000)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { with(density) { -20.dp.roundToPx() } },
-            animationSpec = tween(durationMillis = 1000)
-        ) + shrinkVertically(
-            animationSpec = tween(durationMillis = 1000)
-        ) + fadeOut(
-            animationSpec = tween(durationMillis = 1000)
-        )
-    ) {
-        Thumbstick(
-            onWClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_W) },
-            onAClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_A) },
-            onSClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_S) },
-            onDClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_D) },
-            onRelease = {
-                // Release all keys
-                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_W)
-                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_A)
-                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_S)
-                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
-            }
-        )
-        GameControllerButtons(isVibrationEnabled)
-    }
+
 }
 
 @Suppress("DEPRECATION")
@@ -290,7 +255,29 @@ fun Thumbstick(
     val radiusPx = with(density) { 75.dp.toPx() }
     val deadZone = 0.2f * radiusPx // Adjust deadzone as needed
     var touchState by remember { mutableStateOf(Offset(0f, 0f)) }
+    val visible = UIStateManager.visible
 
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(
+            initialOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
+        ) + expandVertically(
+            expandFrom = Alignment.Bottom,
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeIn(
+            initialAlpha = 0.3f,
+            animationSpec = tween(durationMillis = 1000)
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000)
+        ) + shrinkVertically(
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = 1000)
+        )
+    ) {
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -338,9 +325,11 @@ fun Thumbstick(
                                         if (touchState.x > deadZone) onDClick()
                                     }
                                 }
+
                                 abs(xRatio) > 0.95f -> {
                                     if (touchState.x < 0) onAClick() else onDClick()
                                 }
+
                                 else -> {
                                     if (touchState.y < -deadZone) onWClick()
                                     if (touchState.y > deadZone) onSClick()
@@ -352,18 +341,19 @@ fun Thumbstick(
                     )
                 }
         ) {
-            Box(
-                modifier = Modifier
-                    .size(25.dp)
-                    .offset(
-                        x = (touchState.x / density.density).dp,
-                        y = (touchState.y / density.density).dp
-                    )
-                    .background(
-                        Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f),
-                        shape = CircleShape
-                    )
-            )
+                Box(
+                    modifier = Modifier
+                        .size(25.dp)
+                        .offset(
+                            x = (touchState.x / density.density).dp,
+                            y = (touchState.y / density.density).dp
+                        )
+                        .background(
+                            Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f),
+                            shape = CircleShape
+                        )
+                )
+            }
         }
     }
 }
@@ -373,53 +363,97 @@ fun GameControllerButtons(
     isVibrationEnabled: Boolean
 ) {
     val context = LocalContext.current
+    val density = LocalDensity.current
+    val visible = UIStateManager.visible
 
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(
+            initialOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
+        ) + expandVertically(
+            expandFrom = Alignment.Bottom,
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeIn(
+            initialAlpha = 0.3f,
+            animationSpec = tween(durationMillis = 1000)
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000)
+        ) + shrinkVertically(
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = 1000)
+        )
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.align(Alignment.BottomEnd)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Button(onClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_E)
-                sendKeyEvent(KeyEvent.KEYCODE_E)
-                if (isVibrationEnabled) {
-                    vibrate(context)
-                }
-            }, modifier = Modifier.size(50.dp), shape = CircleShape) {
-                Text(text = "Y", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            }
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.width(200.dp) // Sets the fixed width for the row
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.align(Alignment.BottomEnd)
             ) {
                 Button(onClick = {
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
-                    sendKeyEvent(KeyEvent.KEYCODE_SPACE)
+                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_E)
+                    sendKeyEvent(KeyEvent.KEYCODE_E)
                     if (isVibrationEnabled) {
                         vibrate(context)
                     }
                 }, modifier = Modifier.size(50.dp), shape = CircleShape) {
-                    Text(text = "X", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Y",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.width(200.dp) // Sets the fixed width for the row
+                ) {
+                    Button(onClick = {
+                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
+                        sendKeyEvent(KeyEvent.KEYCODE_SPACE)
+                        if (isVibrationEnabled) {
+                            vibrate(context)
+                        }
+                    }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                        Text(
+                            text = "X",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Button(onClick = {
+                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
+                        sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
+                    }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                        Text(
+                            text = "B",
+                            color = Color.White,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
                 Button(onClick = {
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                    sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
+                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
+                    sendKeyEvent(KeyEvent.KEYCODE_ENTER)
                 }, modifier = Modifier.size(50.dp), shape = CircleShape) {
-                    Text(text = "B", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "A",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-            }
-            Button(onClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
-                sendKeyEvent(KeyEvent.KEYCODE_ENTER)
-            }, modifier = Modifier.size(50.dp), shape = CircleShape) {
-                Text(text = "A", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
