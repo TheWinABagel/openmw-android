@@ -71,9 +71,11 @@ fun OverlayUI() {
     var isLoggingEnabled by remember { mutableStateOf(false) }
     var isVibrationEnabled by remember { mutableStateOf(true) }
     val isUIHidden = UIStateManager.isUIHidden
-    val visible = UIStateManager.visible
+    var isRunEnabled by remember { mutableStateOf(false) }
+    var isF10Enabled by remember { mutableStateOf(false) } // New state for F10
+    var isBacktickEnabled by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
 
         while (true) {
@@ -174,6 +176,37 @@ fun OverlayUI() {
                         Switch(checked = isUIHidden, onCheckedChange = {
                             UIStateManager.isUIHidden = it
                             UIStateManager.visible = !it //
+                        })
+                        // Run/Walk Toggle Switch
+                        Text(text = "Run/Walk", color = Color.White, fontSize = 10.sp)
+                        Switch(checked = isRunEnabled, onCheckedChange = {
+                            isRunEnabled = it
+                            if (it) SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
+                            else SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
+                        })
+                        // F10 Toggle Switch
+                        Text(text = "Press F10", color = Color.White, fontSize = 10.sp)
+                        Switch(checked = isF10Enabled, onCheckedChange = {
+                            isF10Enabled = it
+                            if (it) {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
+                            } else {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
+                            }
+                        })
+                        // Backtick Toggle Switch
+                        Text(text = "Console", color = Color.White, fontSize = 10.sp)
+                        Switch(checked = isBacktickEnabled, onCheckedChange = {
+                            isBacktickEnabled = it
+                            if (it) {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
+                            } else {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
+                            }
                         })
                     }
                 } else {
