@@ -1,12 +1,10 @@
 package org.openmw
 
-import android.content.Context
 import android.os.Bundle
 import android.os.Process
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
-import android.widget.Button
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
@@ -17,9 +15,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
 import org.openmw.ui.overlay.OverlayUI
 import org.openmw.utils.LogCat
-import android.view.KeyEvent
-import android.view.inputmethod.InputMethodManager
-
 
 class EngineActivity : SDLActivity() {
 

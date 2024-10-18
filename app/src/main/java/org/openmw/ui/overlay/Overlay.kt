@@ -1,13 +1,25 @@
 package org.openmw.ui.overlay
 
+import android.R.attr.visible
+import android.content.Context
+import android.graphics.Rect
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,7 +47,16 @@ import kotlinx.coroutines.*
 import org.libsdl.app.SDLActivity
 import org.openmw.utils.*
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.hypot
+import kotlin.math.sin
+
+data class MemoryInfo(
+    val totalMemory: String,
+    val availableMemory: String,
+    val usedMemory: String
+)
 
 @Composable
 fun OverlayUI() {
@@ -44,10 +65,13 @@ fun OverlayUI() {
     var batteryStatus by remember { mutableStateOf("") }
     var logMessages by remember { mutableStateOf("") }
     val scrollState = rememberScrollState()
-
     var isMemoryInfoEnabled by remember { mutableStateOf(false) }
     var isBatteryStatusEnabled by remember { mutableStateOf(false) }
     var isLoggingEnabled by remember { mutableStateOf(false) }
+    var isVibrationEnabled by remember { mutableStateOf(true) }
+    var isUIHidden by remember { mutableStateOf(false) }
+    var visible by remember { mutableStateOf(true) }
+    val density = LocalDensity.current
 
     LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
@@ -73,22 +97,18 @@ fun OverlayUI() {
             } else {
                 logMessages = ""
             }
-
+            scrollState.animateScrollTo(scrollState.maxValue)
             delay(1000)
         }
     }
 
-    LaunchedEffect(logMessages) {
-        scrollState.animateScrollTo(scrollState.maxValue)
-    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         var expanded by remember { mutableStateOf(false) }
+
         Surface(
             color = Color.Transparent,
             onClick = { expanded = !expanded }
         ) {
-
             AnimatedContent(
                 targetState = expanded,
                 transitionSpec = {
@@ -99,24 +119,24 @@ fun OverlayUI() {
                                     keyframes {
                                         // Expand horizontally first.
                                         IntSize(targetSize.width, initialSize.height) at 150
-                                        durationMillis = 300
+                                        durationMillis = 600
                                     }
                                 } else {
                                     keyframes {
                                         // Shrink vertically first.
                                         IntSize(initialSize.width, targetSize.height) at 150
-                                        durationMillis = 300
+                                        durationMillis = 600
                                     }
                                 }
                             }
                 }, label = "size transform"
             ) { targetExpanded ->
                 if (targetExpanded) {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
+                            .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
                             .padding(5.dp)
-                            .border(1.dp, Color.Black)
                     ) {
                         Text(
                             text = "Show Memory Info",
@@ -127,7 +147,6 @@ fun OverlayUI() {
                             checked = isMemoryInfoEnabled,
                             onCheckedChange = { isMemoryInfoEnabled = it }
                         )
-
                         Text(
                             text = "Show Battery Status",
                             color = Color.White,
@@ -146,25 +165,22 @@ fun OverlayUI() {
                             checked = isLoggingEnabled,
                             onCheckedChange = { isLoggingEnabled = it }
                         )
-
+                        Text(text = "Enable Vibration", color = Color.White, fontSize = 10.sp)
+                        Switch(
+                            checked = isVibrationEnabled,
+                            onCheckedChange = { isVibrationEnabled = it }
+                        )
+                        Text(text = "Hide UI", color = Color.White, fontSize = 10.sp)
+                        Switch(checked = isUIHidden, onCheckedChange = {
+                            isUIHidden = it
+                            visible = !it
+                        })
                     }
                 } else {
                     Icon(Icons.Rounded.Settings, contentDescription = "Settings")
                 }
             }
         }
-        // Add Thumbstick and Arrow Buttons
-        ThumbstickButtons(
-            onEnterClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER) },
-            onEscapeClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
-            },
-            onBacktickClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                sendKeyEvent(KeyEvent.KEYCODE_GRAVE)
-            }
-        )
         // Information display
         Column(
             modifier = Modifier
@@ -213,30 +229,28 @@ fun OverlayUI() {
                 }
             }
         }
-        // Add Game Controller Buttons
-        GameControllerButtons(
-            onButtonAClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE) },
-            onButtonBClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
-            },
-            onButtonXClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_X) },
-            onButtonYClick = { MotionEvent.BUTTON_SECONDARY }
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInVertically(
+            initialOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
+        ) + expandVertically(
+            expandFrom = Alignment.Bottom,
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeIn(
+            initialAlpha = 0.3f,
+            animationSpec = tween(durationMillis = 1000)
+        ),
+        exit = slideOutVertically(
+            targetOffsetY = { with(density) { -20.dp.roundToPx() } },
+            animationSpec = tween(durationMillis = 1000)
+        ) + shrinkVertically(
+            animationSpec = tween(durationMillis = 1000)
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = 1000)
         )
-
-        // Add Thumbstick and Arrow Buttons
-        ThumbstickButtons(
-            onEnterClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER) },
-            onEscapeClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
-            },
-            onBacktickClick = {
-                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                sendKeyEvent(KeyEvent.KEYCODE_GRAVE)
-            }
-        )
-        // Add Thumbstick
+    ) {
         Thumbstick(
             onWClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_W) },
             onAClick = { SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_A) },
@@ -250,40 +264,16 @@ fun OverlayUI() {
                 SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
             }
         )
+        GameControllerButtons(isVibrationEnabled)
     }
 }
 
-data class MemoryInfo(
-    val totalMemory: String,
-    val availableMemory: String,
-    val usedMemory: String
-)
-
-@Composable
-fun ThumbstickButtons(
-    onEnterClick: () -> Unit,
-    onEscapeClick: () -> Unit,
-    onBacktickClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.align(Alignment.TopEnd)
-        ) {
-            Button(onClick = onEnterClick) {
-                Text(text = "Enter")
-            }
-            Button(onClick = onEscapeClick) {
-                Text(text = "Escape")
-            }
-            Button(onClick = onBacktickClick) {
-                Text(text = "`")
-            }
+@Suppress("DEPRECATION")
+fun vibrate(context: Context) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    if (vibrator.hasVibrator()) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
         }
     }
 }
@@ -300,6 +290,7 @@ fun Thumbstick(
     val radiusPx = with(density) { 75.dp.toPx() }
     val deadZone = 0.2f * radiusPx // Adjust deadzone as needed
     var touchState by remember { mutableStateOf(Offset(0f, 0f)) }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -320,39 +311,37 @@ fun Thumbstick(
                             change.consume()
                             val newX = touchState.x + dragAmount.x
                             val newY = touchState.y + dragAmount.y
-
                             if (hypot(newX, newY) <= radiusPx) {
                                 touchState = Offset(newX, newY)
                             } else {
-                                val angle = kotlin.math.atan2(newY, newX)
+                                val angle = atan2(newY, newX)
                                 touchState = Offset(
-                                    radiusPx * kotlin.math.cos(angle),
-                                    radiusPx * kotlin.math.sin(angle)
+                                    radiusPx * cos(angle),
+                                    radiusPx * sin(angle)
                                 )
                             }
-
                             // Determine direction with overlapping zones and deadzone
                             SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_W)
                             SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_A)
                             SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_S)
                             SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
-
                             val xRatio = touchState.x / radiusPx
                             val yRatio = touchState.y / radiusPx
-
-                            if (abs(yRatio) > abs(xRatio)) {
-                                if (abs(yRatio) > 0.95f) {
-                                    if (touchState.y < 0) onWClick() else onSClick()
-                                } else {
-                                    if (touchState.y < -deadZone) onWClick()
-                                    if (touchState.y > deadZone) onSClick()
-                                    if (touchState.x < -deadZone) onAClick()
-                                    if (touchState.x > deadZone) onDClick()
+                            when {
+                                abs(yRatio) > abs(xRatio) -> {
+                                    if (abs(yRatio) > 0.95f) {
+                                        if (touchState.y < 0) onWClick() else onSClick()
+                                    } else {
+                                        if (touchState.y < -deadZone) onWClick()
+                                        if (touchState.y > deadZone) onSClick()
+                                        if (touchState.x < -deadZone) onAClick()
+                                        if (touchState.x > deadZone) onDClick()
+                                    }
                                 }
-                            } else {
-                                if (abs(xRatio) > 0.95f) {
+                                abs(xRatio) > 0.95f -> {
                                     if (touchState.x < 0) onAClick() else onDClick()
-                                } else {
+                                }
+                                else -> {
                                     if (touchState.y < -deadZone) onWClick()
                                     if (touchState.y > deadZone) onSClick()
                                     if (touchState.x < -deadZone) onAClick()
@@ -381,11 +370,10 @@ fun Thumbstick(
 
 @Composable
 fun GameControllerButtons(
-    onButtonAClick: () -> Unit,
-    onButtonBClick: () -> Unit,
-    onButtonXClick: () -> Unit,
-    onButtonYClick: () -> Unit
+    isVibrationEnabled: Boolean
 ) {
+    val context = LocalContext.current
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -397,7 +385,13 @@ fun GameControllerButtons(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.align(Alignment.BottomEnd)
         ) {
-            Button(onClick = onButtonYClick, modifier = Modifier.size(50.dp), shape = CircleShape) {
+            Button(onClick = {
+                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_E)
+                sendKeyEvent(KeyEvent.KEYCODE_E)
+                if (isVibrationEnabled) {
+                    vibrate(context)
+                }
+            }, modifier = Modifier.size(50.dp), shape = CircleShape) {
                 Text(text = "Y", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
             Row(
@@ -405,14 +399,26 @@ fun GameControllerButtons(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.width(200.dp) // Sets the fixed width for the row
             ) {
-                Button(onClick = onButtonXClick, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                Button(onClick = {
+                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
+                    sendKeyEvent(KeyEvent.KEYCODE_SPACE)
+                    if (isVibrationEnabled) {
+                        vibrate(context)
+                    }
+                }, modifier = Modifier.size(50.dp), shape = CircleShape) {
                     Text(text = "X", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
-                Button(onClick = onButtonBClick, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                Button(onClick = {
+                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
+                    sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
+                }, modifier = Modifier.size(50.dp), shape = CircleShape) {
                     Text(text = "B", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                 }
             }
-            Button(onClick = onButtonAClick, modifier = Modifier.size(50.dp), shape = CircleShape) {
+            Button(onClick = {
+                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
+                sendKeyEvent(KeyEvent.KEYCODE_ENTER)
+            }, modifier = Modifier.size(50.dp), shape = CircleShape) {
                 Text(text = "A", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
