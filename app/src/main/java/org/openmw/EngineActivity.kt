@@ -8,7 +8,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -17,14 +16,11 @@ import org.libsdl.app.SDLActivity
 import org.openmw.ui.overlay.GameControllerButtons
 import org.openmw.ui.overlay.OverlayUI
 import org.openmw.ui.overlay.Thumbstick
-import org.openmw.utils.LogCat
 
 class EngineActivity : SDLActivity() {
-
     init {
         setEnvironmentVariables()
     }
-
     override fun getLibraries(): Array<String> {
         return try {
             Log.d("EngineActivity", "Loading libraries: ${jniLibsArray.joinToString(", ")}")
@@ -48,8 +44,8 @@ class EngineActivity : SDLActivity() {
         }
 
         // Create an instance of LogCat and call enableLogcat
-        val logCat = LogCat(this)
-        logCat.enableLogcat()
+        //val logCat = LogCat(this)
+        //logCat.enableLogcat()
         Log.d("EngineActivity", "parentDir: ${filesDir.parent}")
         Log.d("EngineActivity", "USER_FILE_STORAGE: ${Constants.USER_FILE_STORAGE}")
         getPathToJni(filesDir.parent!!, Constants.USER_FILE_STORAGE)
@@ -62,18 +58,24 @@ class EngineActivity : SDLActivity() {
         // Setup Compose overlay for thumbstick
         val composeView = findViewById<ComposeView>(R.id.compose_overlay)
         composeView.setContent {
-                Thumbstick(
-                    onWClick = {onNativeKeyDown(KeyEvent.KEYCODE_W) },
-                    onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
-                    onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
-                    onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
-                    onRelease = {
-                        onNativeKeyUp(KeyEvent.KEYCODE_W)
-                        onNativeKeyUp(KeyEvent.KEYCODE_A)
-                        onNativeKeyUp(KeyEvent.KEYCODE_S)
-                        onNativeKeyUp(KeyEvent.KEYCODE_D)
-                    }
-                )
+            Thumbstick(
+                onWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W) },
+                onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
+                onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
+                onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
+                onRelease = {
+                    onNativeKeyUp(KeyEvent.KEYCODE_W)
+                    onNativeKeyUp(KeyEvent.KEYCODE_A)
+                    onNativeKeyUp(KeyEvent.KEYCODE_S)
+                    onNativeKeyUp(KeyEvent.KEYCODE_D)
+                    onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT) // Ensure SHIFT is also released
+                },
+                onShiftWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
+                onShiftAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
+                onShiftSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
+                onShiftDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) }
+            )
+
         }
 
         // Setup Compose overlay for buttons
@@ -85,10 +87,9 @@ class EngineActivity : SDLActivity() {
         // Setup Compose overlay for buttons
         val composeViewButtons = findViewById<ComposeView>(R.id.compose_overlayButtons)
         composeViewButtons.setContent {
-           GameControllerButtons(isVibrationEnabled = true)
+           GameControllerButtons()
         }
     }
-
 
     private fun setEnvironmentVariables() {
         try {
