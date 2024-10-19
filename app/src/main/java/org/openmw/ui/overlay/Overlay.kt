@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.view.KeyEvent
+import android.view.MotionEvent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
@@ -19,8 +20,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -29,10 +30,11 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -43,10 +45,7 @@ import kotlinx.coroutines.*
 import org.libsdl.app.SDLActivity
 import org.openmw.utils.*
 import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.hypot
-import kotlin.math.sin
 
 data class MemoryInfo(
     val totalMemory: String,
@@ -57,6 +56,8 @@ data class MemoryInfo(
 object UIStateManager {
     var isUIHidden by mutableStateOf(false)
     var visible by mutableStateOf(true)
+    var isVibrationEnabled by mutableStateOf(true)
+    var isRunEnabled by mutableStateOf(false)
 }
 
 @Composable
@@ -69,11 +70,12 @@ fun OverlayUI() {
     var isMemoryInfoEnabled by remember { mutableStateOf(false) }
     var isBatteryStatusEnabled by remember { mutableStateOf(false) }
     var isLoggingEnabled by remember { mutableStateOf(false) }
-    var isVibrationEnabled by remember { mutableStateOf(true) }
     val isUIHidden = UIStateManager.isUIHidden
-    var isRunEnabled by remember { mutableStateOf(false) }
+    var isRunEnabled = UIStateManager.isRunEnabled
     var isF10Enabled by remember { mutableStateOf(false) } // New state for F10
     var isBacktickEnabled by remember { mutableStateOf(false) }
+    var isF2Enabled by remember { mutableStateOf(false) }
+    var isF3Enabled by remember { mutableStateOf(false) }
 
 LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
@@ -95,11 +97,12 @@ LaunchedEffect(Unit) {
             }
 
             if (isLoggingEnabled) {
+                scrollState.animateScrollTo(scrollState.maxValue)
                 logMessages = getMessages().joinToString("\n")
             } else {
                 logMessages = ""
             }
-            scrollState.animateScrollTo(scrollState.maxValue)
+
             delay(1000)
         }
     }
@@ -134,80 +137,109 @@ LaunchedEffect(Unit) {
                 }, label = "size transform"
             ) { targetExpanded ->
                 if (targetExpanded) {
-                    Row(
+                    LazyRow(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
                             .padding(5.dp)
                     ) {
-                        Text(
-                            text = "Show Memory Info",
-                            color = Color.White,
-                            fontSize = 10.sp
-                        )
-                        Switch(
-                            checked = isMemoryInfoEnabled,
-                            onCheckedChange = { isMemoryInfoEnabled = it }
-                        )
-                        Text(
-                            text = "Show Battery Status",
-                            color = Color.White,
-                            fontSize = 10.sp
-                        )
-                        Switch(
-                            checked = isBatteryStatusEnabled,
-                            onCheckedChange = { isBatteryStatusEnabled = it }
-                        )
-                        Text(
-                            text = "Show Logcat",
-                            color = Color.White,
-                            fontSize = 10.sp
-                        )
-                        Switch(
-                            checked = isLoggingEnabled,
-                            onCheckedChange = { isLoggingEnabled = it }
-                        )
-                        Text(text = "Enable Vibration", color = Color.White, fontSize = 10.sp)
-                        Switch(
-                            checked = isVibrationEnabled,
-                            onCheckedChange = { isVibrationEnabled = it }
-                        )
-                        Text(text = "Hide UI", color = Color.White, fontSize = 10.sp)
-                        Switch(checked = isUIHidden, onCheckedChange = {
-                            UIStateManager.isUIHidden = it
-                            UIStateManager.visible = !it //
-                        })
-                        // Run/Walk Toggle Switch
-                        Text(text = "Run/Walk", color = Color.White, fontSize = 10.sp)
-                        Switch(checked = isRunEnabled, onCheckedChange = {
-                            isRunEnabled = it
-                            if (it) SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
-                            else SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
-                        })
-                        // F10 Toggle Switch
-                        Text(text = "Press F10", color = Color.White, fontSize = 10.sp)
-                        Switch(checked = isF10Enabled, onCheckedChange = {
-                            isF10Enabled = it
-                            if (it) {
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
-                            } else {
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
+                        item {
+                            Text(
+                                text = "Show Memory Info",
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
+                            Switch(
+                                checked = isMemoryInfoEnabled,
+                                onCheckedChange = { isMemoryInfoEnabled = it }
+                            )
+                            Text(
+                                text = "Show Battery Status",
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
+                            Switch(
+                                checked = isBatteryStatusEnabled,
+                                onCheckedChange = { isBatteryStatusEnabled = it }
+                            )
+                            Text(
+                                text = "Show Logcat",
+                                color = Color.White,
+                                fontSize = 10.sp
+                            )
+                            Switch(
+                                checked = isLoggingEnabled,
+                                onCheckedChange = { isLoggingEnabled = it }
+                            )
+                            Text(text = "Enable Vibration", color = Color.White, fontSize = 10.sp)
+                            Switch(
+                                checked = UIStateManager.isVibrationEnabled,
+                                onCheckedChange = { UIStateManager.isVibrationEnabled = it })
+                            Text(text = "Hide UI", color = Color.White, fontSize = 10.sp)
+                            Switch(checked = isUIHidden, onCheckedChange = {
+                                UIStateManager.isUIHidden = it
+                                UIStateManager.visible = !it
+                            })
+                            // Run/Walk Toggle Switch
+                            Text(text = "Run / Walk", color = Color.White, fontSize = 10.sp)
+                            Switch(checked = isRunEnabled, onCheckedChange = {
+                                UIStateManager.isRunEnabled = it
+                                if (it) SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
+                                else SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
+                            })
+                            // F10 Toggle Switch
+                            Text(text = "Press F10", color = Color.White, fontSize = 10.sp)
+                            Switch(checked = isF10Enabled, onCheckedChange = {
+                                isF10Enabled = it
+                                if (it) {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
+                                } else {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F10)
+                                }
+                            })
+                            // Backtick Toggle Switch
+                            Text(text = "Console", color = Color.White, fontSize = 10.sp)
+                            Switch(checked = isBacktickEnabled, onCheckedChange = {
+                                isBacktickEnabled = it
+                                if (it) {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
+                                } else {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
+                                }
+                            })
+                            Spacer(modifier = Modifier.width(16.dp))
+                            // F2 Icon
+                            IconButton(onClick = {
+                                isF2Enabled = !isF2Enabled
+                                if (isF2Enabled) {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F2)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F2)
+                                } else {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F2)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F2)
+                                }
+                            }) {
+                                Text(text = "F2", color = Color.White, fontSize = 20.sp)
                             }
-                        })
-                        // Backtick Toggle Switch
-                        Text(text = "Console", color = Color.White, fontSize = 10.sp)
-                        Switch(checked = isBacktickEnabled, onCheckedChange = {
-                            isBacktickEnabled = it
-                            if (it) {
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
-                            } else {
-                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            // F3 Icon
+                            IconButton(onClick = {
+                                isF3Enabled = !isF3Enabled
+                                if (isF3Enabled) {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F3)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F3)
+                                } else {
+                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F3)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F3)
+                                }
+                            }) {
+                                Text(text = "F3", color = Color.White, fontSize = 20.sp)
                             }
-                        })
+                        }
                     }
                 } else {
                     Icon(Icons.Rounded.Settings, contentDescription = "Settings")
@@ -241,9 +273,9 @@ LaunchedEffect(Unit) {
             if (isLoggingEnabled) {
                 Box(
                     modifier = Modifier
-                        .width(300.dp)
+                        .width(400.dp)
                         .height(200.dp)
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = 35.dp)
                         .verticalScroll(rememberScrollState()),
                     contentAlignment = Alignment.BottomCenter
                 ) {
@@ -276,25 +308,31 @@ fun vibrate(context: Context) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun Thumbstick(
     onWClick: () -> Unit,
     onAClick: () -> Unit,
     onSClick: () -> Unit,
     onDClick: () -> Unit,
-    onRelease: () -> Unit
+    onRelease: () -> Unit,
+    onShiftWClick: () -> Unit,
+    onShiftAClick: () -> Unit,
+    onShiftSClick: () -> Unit,
+    onShiftDClick: () -> Unit
 ) {
     val density = LocalDensity.current
     val radiusPx = with(density) { 75.dp.toPx() }
     val deadZone = 0.2f * radiusPx // Adjust deadzone as needed
     var touchState by remember { mutableStateOf(Offset(0f, 0f)) }
     val visible = UIStateManager.visible
+    val isRunEnabled = UIStateManager.isRunEnabled
 
     AnimatedVisibility(
         visible = visible,
         enter = slideInVertically(
             initialOffsetY = { with(density) { -20.dp.roundToPx() } },
-            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
+            animationSpec = tween(durationMillis = 1000)
         ) + expandVertically(
             expandFrom = Alignment.Bottom,
             animationSpec = tween(durationMillis = 1000)
@@ -311,69 +349,82 @@ fun Thumbstick(
             animationSpec = tween(durationMillis = 1000)
         )
     ) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(200.dp)
-                .padding(20.dp)
-                .align(Alignment.BottomStart)
-                .border(2.dp, Color.Black, shape = CircleShape)
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragEnd = {
-                            touchState = Offset.Zero // Reset to center
-                            onRelease() // Invoke release callback
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            val newX = touchState.x + dragAmount.x
-                            val newY = touchState.y + dragAmount.y
-                            if (hypot(newX, newY) <= radiusPx) {
-                                touchState = Offset(newX, newY)
-                            } else {
-                                val angle = atan2(newY, newX)
-                                touchState = Offset(
-                                    radiusPx * cos(angle),
-                                    radiusPx * sin(angle)
-                                )
-                            }
-                            // Determine direction with overlapping zones and deadzone
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_W)
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_A)
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_S)
-                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
-                            val xRatio = touchState.x / radiusPx
-                            val yRatio = touchState.y / radiusPx
-                            when {
-                                abs(yRatio) > abs(xRatio) -> {
-                                    if (abs(yRatio) > 0.95f) {
-                                        if (touchState.y < 0) onWClick() else onSClick()
+        Box(modifier = Modifier.fillMaxSize()) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(200.dp)
+                    .border(2.dp, Color.Black, shape = CircleShape)
+                    .pointerInteropFilter { event ->
+                        val location = Offset(event.x, event.y)
+                        val isInBounds = hypot(location.x - radiusPx, location.y - radiusPx) <= radiusPx
+                        if (isInBounds) {
+                            when (event.action) {
+                                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                                    val newX = location.x - radiusPx
+                                    val newY = location.y - radiusPx
+                                    touchState = Offset(newX, newY)
+
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_W)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_A)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_S)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
+
+                                    val distance = hypot(newX, newY)
+                                    val xRatio = touchState.x / radiusPx
+                                    val yRatio = touchState.y / radiusPx
+
+                                    if (isRunEnabled || distance > 0.9f * radiusPx) {
+                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
                                     } else {
-                                        if (touchState.y < -deadZone) onWClick()
-                                        if (touchState.y > deadZone) onSClick()
-                                        if (touchState.x < -deadZone) onAClick()
-                                        if (touchState.x > deadZone) onDClick()
+                                        SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
+                                    }
+
+                                    when {
+                                        abs(yRatio) > abs(xRatio) -> {
+                                            if (isRunEnabled || distance > 0.9f * radiusPx) {
+                                                if (touchState.y < 0) onShiftWClick() else onShiftSClick()
+                                            } else {
+                                                if (touchState.y < -deadZone) onWClick()
+                                                if (touchState.y > deadZone) onSClick()
+                                                if (touchState.x < -deadZone) onAClick()
+                                                if (touchState.x > deadZone) onDClick()
+                                            }
+                                        }
+                                        abs(xRatio) > 0.9f -> {
+                                            if (isRunEnabled || distance > 0.9f * radiusPx) {
+                                                if (touchState.x < 0) onShiftAClick() else onShiftDClick()
+                                            } else {
+                                                if (touchState.y < -deadZone) onWClick()
+                                                if (touchState.y > deadZone) onSClick()
+                                                if (touchState.x < -deadZone) onAClick()
+                                                if (touchState.x > deadZone) onDClick()
+                                            }
+                                        }
+                                        else -> {
+                                            if (touchState.y < -deadZone) onWClick()
+                                            if (touchState.y > deadZone) onSClick()
+                                            if (touchState.x < -deadZone) onAClick()
+                                            if (touchState.x > deadZone) onDClick()
+                                        }
                                     }
                                 }
-
-                                abs(xRatio) > 0.95f -> {
-                                    if (touchState.x < 0) onAClick() else onDClick()
-                                }
-
-                                else -> {
-                                    if (touchState.y < -deadZone) onWClick()
-                                    if (touchState.y > deadZone) onSClick()
-                                    if (touchState.x < -deadZone) onAClick()
-                                    if (touchState.x > deadZone) onDClick()
+                                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                                    touchState = Offset.Zero
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_W)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_A)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_S)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_D)
+                                    SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
+                                    onRelease()
                                 }
                             }
+                            true
+                        } else {
+                            false
                         }
-                    )
-                }
-        ) {
+                    }
+            ) {
                 Box(
                     modifier = Modifier
                         .size(25.dp)
@@ -391,13 +442,15 @@ fun Thumbstick(
     }
 }
 
+
 @Composable
 fun GameControllerButtons(
-    isVibrationEnabled: Boolean
+
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
     val visible = UIStateManager.visible
+    var isVibrationEnabled = UIStateManager.isVibrationEnabled
 
     AnimatedVisibility(
         visible = visible,
@@ -428,16 +481,23 @@ fun GameControllerButtons(
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp), // Adjusted spacing
                 modifier = Modifier.align(Alignment.BottomEnd)
             ) {
-                Button(onClick = {
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_E)
-                    sendKeyEvent(KeyEvent.KEYCODE_E)
-                    if (isVibrationEnabled) {
-                        vibrate(context)
-                    }
-                }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                Button(
+                    onClick = {
+                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_E)
+                        sendKeyEvent(KeyEvent.KEYCODE_E)
+                        SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_E)
+                        if (isVibrationEnabled) {
+                            vibrate(context)
+                        }
+                    },
+                    modifier = Modifier
+                        .size(50.dp)
+                        .border(1.dp, Color.Black, shape = CircleShape),
+                    shape = CircleShape
+                ) {
                     Text(
                         text = "Y",
                         color = Color.White,
@@ -445,18 +505,26 @@ fun GameControllerButtons(
                         fontWeight = FontWeight.Bold
                     )
                 }
+
                 Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(85.dp), // Adjusted spacing
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.width(200.dp) // Sets the fixed width for the row
                 ) {
-                    Button(onClick = {
-                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
-                        sendKeyEvent(KeyEvent.KEYCODE_SPACE)
-                        if (isVibrationEnabled) {
-                            vibrate(context)
-                        }
-                    }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+                    Button(
+                        onClick = {
+                            SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
+                            sendKeyEvent(KeyEvent.KEYCODE_SPACE)
+                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_SPACE)
+                            if (isVibrationEnabled) {
+                                vibrate(context)
+                            }
+                        },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .border(1.dp, Color.Black, shape = CircleShape),
+                        shape = CircleShape
+                    ) {
                         Text(
                             text = "X",
                             color = Color.White,
@@ -464,10 +532,18 @@ fun GameControllerButtons(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Button(onClick = {
-                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                        sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
-                    }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+
+                    Button(
+                        onClick = {
+                            SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
+                            sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
+                            SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_ESCAPE)
+                        },
+                        modifier = Modifier
+                            .size(50.dp)
+                            .border(1.dp, Color.Black, shape = CircleShape),
+                        shape = CircleShape
+                    ) {
                         Text(
                             text = "B",
                             color = Color.White,
@@ -476,10 +552,18 @@ fun GameControllerButtons(
                         )
                     }
                 }
-                Button(onClick = {
-                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
-                    sendKeyEvent(KeyEvent.KEYCODE_ENTER)
-                }, modifier = Modifier.size(50.dp), shape = CircleShape) {
+
+                Button(
+                    onClick = {
+                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
+                        sendKeyEvent(KeyEvent.KEYCODE_ENTER)
+                        SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_ENTER)
+                    },
+                    modifier = Modifier
+                        .size(50.dp)
+                        .border(1.dp, Color.Black, shape = CircleShape),
+                    shape = CircleShape
+                ) {
                     Text(
                         text = "A",
                         color = Color.White,
@@ -488,6 +572,7 @@ fun GameControllerButtons(
                     )
                 }
             }
+
         }
     }
 }
