@@ -8,6 +8,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Custom Cursor View -->
+    <org.openmw.ui.controls.CustomCursorView
+        android:id="@+id/customCursorView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:clickable="false"
+        android:focusable="false" />
+
     <!-- Placeholder for ComposeView -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/compose_overlayMenu"

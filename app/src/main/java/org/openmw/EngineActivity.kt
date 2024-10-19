@@ -1,23 +1,39 @@
 package org.openmw
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Process
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
 import android.view.KeyEvent
+import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
+import org.openmw.ui.controls.CustomCursorView
 import org.openmw.ui.overlay.GameControllerButtons
 import org.openmw.ui.overlay.OverlayUI
 import org.openmw.ui.overlay.Thumbstick
 
 class EngineActivity : SDLActivity() {
+    private var customCursorView: CustomCursorView? = null
+    private lateinit var sdlView: View
     init {
         setEnvironmentVariables()
     }
@@ -31,10 +47,19 @@ class EngineActivity : SDLActivity() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.engine_activity)
+        sdlView = getContentView()
+        customCursorView = findViewById<CustomCursorView>(R.id.customCursorView).apply {
+            sdlView = this@EngineActivity.sdlView // Set SDL view reference
+        }
+
+        // Add SDL view programmatically
+        val sdlContainer = findViewById<FrameLayout>(R.id.sdl_container)
+        sdlContainer.addView(sdlView) // Add SDL view to the sdl_container
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         // Hide the system bars
@@ -49,11 +74,6 @@ class EngineActivity : SDLActivity() {
         Log.d("EngineActivity", "parentDir: ${filesDir.parent}")
         Log.d("EngineActivity", "USER_FILE_STORAGE: ${Constants.USER_FILE_STORAGE}")
         getPathToJni(filesDir.parent!!, Constants.USER_FILE_STORAGE)
-
-        // Add SDL view programmatically
-        val sdlView = getContentView()
-        val sdlContainer = findViewById<FrameLayout>(R.id.sdl_container)
-        sdlContainer.addView(sdlView) // Add SDL view to the sdl_container
 
         // Setup Compose overlay for thumbstick
         val composeView = findViewById<ComposeView>(R.id.compose_overlay)
@@ -75,7 +95,6 @@ class EngineActivity : SDLActivity() {
                 onShiftSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
                 onShiftDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) }
             )
-
         }
 
         // Setup Compose overlay for buttons
@@ -87,7 +106,35 @@ class EngineActivity : SDLActivity() {
         // Setup Compose overlay for buttons
         val composeViewButtons = findViewById<ComposeView>(R.id.compose_overlayButtons)
         composeViewButtons.setContent {
-           GameControllerButtons()
+            Column(
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End,
+                modifier = Modifier.fillMaxHeight()
+            ) {
+                // Toggle Custom Cursor Visibility Button
+                Button(
+                    onClick = { toggleCustomCursor() },
+                    modifier = Modifier
+                        .size(30.dp)
+                        .align(Alignment.End)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Mouse"
+                    )
+                }
+
+                // Game Controller Buttons at the Bottom
+                GameControllerButtons()
+            }
+        }
+    }
+
+    private var isCustomCursorEnabled = false
+    fun toggleCustomCursor() {
+        runOnUiThread {
+            isCustomCursorEnabled = !isCustomCursorEnabled
+            customCursorView?.visibility = if (isCustomCursorEnabled) View.VISIBLE else View.GONE
         }
     }
 
