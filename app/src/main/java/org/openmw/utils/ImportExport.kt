@@ -37,6 +37,7 @@ import java.util.zip.ZipOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 
 @Composable
 fun CfgImport() {
@@ -223,6 +224,68 @@ fun importFilesAndDirectories(context: Context) {
     } catch (e: Exception) {
         e.printStackTrace()
         Toast.makeText(context, "Import failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun importSpecificFile(context: Context, filePattern: String) {
+    val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val targetDirectory = File(Constants.USER_FILE_STORAGE)
+    val regex = Regex(filePattern)
+
+    try {
+        val specificFile = downloadFolder.listFiles { _, name ->
+            regex.containsMatchIn(name)
+        }?.firstOrNull()
+
+        if (specificFile != null) {
+            if (specificFile.name == "settings.cfg") {
+                // Overwrite settings.cfg
+                specificFile.copyTo(File(Constants.SETTINGS_FILE), overwrite = true)
+                Toast.makeText(context, "File ${specificFile.name} imported successfully", Toast.LENGTH_SHORT).show()
+            } else if (specificFile.name.endsWith(".omwsave")) {
+                // Import .omwsave file into a random folder
+                val randomFolderName = "_${Random.nextInt(10, 99)}"
+                val savesDirectory = File(Constants.USER_FILE_STORAGE, "saves")
+                if (!savesDirectory.exists()) {
+                    savesDirectory.mkdirs()
+                }
+                val targetSaveFolder = File(savesDirectory, randomFolderName)
+                if (!targetSaveFolder.exists()) {
+                    targetSaveFolder.mkdirs()
+                }
+                specificFile.copyTo(File(targetSaveFolder, specificFile.name), overwrite = true)
+                Toast.makeText(context, "Save file ${specificFile.name} imported successfully to $randomFolderName", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "File matching pattern $filePattern not found for import", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Import failed: ${e.message}", Toast.LENGTH_SHORT).show()
+    }
+}
+
+fun exportCrashAndLogcatFiles(context: Context) {
+    val crashFile = File(Constants.CRASH_FILE)
+    val logcatFile = File(Constants.LOGCAT_FILE)
+    val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+
+    try {
+        if (crashFile.exists()) {
+            crashFile.copyTo(File(downloadFolder, crashFile.name), overwrite = true)
+            Toast.makeText(context, "Crash file exported successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Crash file does not exist", Toast.LENGTH_SHORT).show()
+        }
+        if (logcatFile.exists()) {
+            logcatFile.copyTo(File(downloadFolder, logcatFile.name), overwrite = true)
+            Toast.makeText(context, "Logcat file exported successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Logcat file does not exist", Toast.LENGTH_SHORT).show()
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 

@@ -1,5 +1,6 @@
 package org.openmw.ui.controls
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -11,27 +12,22 @@ import android.view.MotionEvent
 import android.view.View
 
 class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
-    private val paint = Paint().apply {
-        color = Color.WHITE
-        style = Paint.Style.FILL
-    }
+    private val paint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
     private var cursorX = 0f
     private var cursorY = 0f
-    private var offset = -150f // Offset the cursor from the touch point
-    var sdlView: View? = null // Reference to SDL view
+    private var offset = -150f
+    var sdlView: View? = null
     private var isCursorEnabled = true
 
     fun setCursorPosition(x: Float, y: Float) {
         cursorX = x + offset
         cursorY = y + offset
-        //Log.d("CustomCursorView", "Cursor at X: $cursorX, Y: $cursorY")
         invalidate()
     }
 
     fun performMouseClick() {
-        val adjustedX = cursorX // Use the cursor's position for the click
-        val adjustedY = cursorY// Use the cursor's position for the click
-
+        val adjustedX = cursorX
+        val adjustedY = cursorY
         val eventDown = MotionEvent.obtain(
             SystemClock.uptimeMillis(),
             SystemClock.uptimeMillis(),
@@ -58,19 +54,15 @@ class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, a
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (isCursorEnabled) {
-            canvas.drawCircle(cursorX, cursorY, 20f, paint) // Draw a circle as the cursor
+            canvas.drawCircle(cursorX, cursorY, 20f, paint)
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_MOVE, MotionEvent.ACTION_DOWN -> {
                 setCursorPosition(event.x, event.y)
-                //Log.d("CustomCursorView", "Motion at X: ${event.x}, Y: ${event.y}")
-                return true
-            }
-            MotionEvent.ACTION_UP -> {
-                performMouseClick()
                 return true
             }
         }
@@ -78,7 +70,6 @@ class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     override fun performClick(): Boolean {
-        performMouseClick()
         return super.performClick()
     }
 }

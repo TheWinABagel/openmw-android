@@ -37,7 +37,7 @@
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/compose_overlayButtons"
         android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_height="match_parent"
         android:layout_gravity="bottom|end"
         android:padding="16dp" />
 

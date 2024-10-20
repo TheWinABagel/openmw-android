@@ -14,13 +14,18 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.openmw.Constants
+import org.openmw.GameFilesPreferences
 import org.openmw.dataStore
 import org.openmw.getAbsolutePathFromUri
 import org.openmw.storeGameFilesUri
 import org.openmw.utils.ModValue
 import org.openmw.utils.writeModValuesToFile
 import java.io.File
+import java.io.FileInputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
 
 class SettingsFragment : ComponentActivity() {
 
@@ -195,4 +200,27 @@ class IniConverter(private val data: String) {
         if (key.isBlank() || value.isBlank()) return ""
         return "${key.replace(" ", "_")},$value"
     }
+}
+
+fun getGameFilesUri(context: Context): String? {
+    val dataStoreKey = GameFilesPreferences.GAME_FILES_URI_KEY
+    val dataStore = context.dataStore
+    return runBlocking {
+        val preferences = dataStore.data.first()
+        preferences[dataStoreKey]
+    }
+}
+
+fun containsMorrowindFolder(zipFilePath: String): Boolean {
+    ZipInputStream(FileInputStream(zipFilePath)).use { zipIn ->
+        var entry: ZipEntry? = zipIn.nextEntry
+        while (entry != null) {
+            if (entry.name.startsWith("Morrowind/")) {
+                return true
+            }
+            zipIn.closeEntry()
+            entry = zipIn.nextEntry
+        }
+    }
+    return false
 }

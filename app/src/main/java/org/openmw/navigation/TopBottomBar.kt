@@ -45,6 +45,8 @@ import org.openmw.GameFilesPreferences
 import org.openmw.R
 import org.openmw.dataStore
 import org.openmw.fragments.NavmeshActivity
+import org.openmw.fragments.containsMorrowindFolder
+import org.openmw.fragments.getGameFilesUri
 import org.openmw.ui.theme.transparentBlack
 import org.openmw.utils.UnzipWithProgress
 import org.openmw.utils.UserManageAssets
@@ -134,10 +136,14 @@ fun MyTopBar(context: Context) {
                 DropdownMenuItem(
                     text = { Text("Build Navmesh", color = Color.White) },
                     onClick = {
+                        Toast.makeText(context, "Not Implemented Yet", Toast.LENGTH_SHORT).show()
+                        /*
                         val intent = Intent(context, NavmeshActivity::class.java).apply {
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         }
                         context.startActivity(intent)
+
+                         */
                     }
                 )
                 DropdownMenuItem(
@@ -215,26 +221,5 @@ fun MyFloatingActionButton(context: Context) {
     }
 }
 
-fun getGameFilesUri(context: Context): String? {
-    val dataStoreKey = GameFilesPreferences.GAME_FILES_URI_KEY
-    val dataStore = context.dataStore
-    return runBlocking {
-        val preferences = dataStore.data.first()
-        preferences[dataStoreKey]
-    }
-}
 
-fun containsMorrowindFolder(zipFilePath: String): Boolean {
-    ZipInputStream(FileInputStream(zipFilePath)).use { zipIn ->
-        var entry: ZipEntry? = zipIn.nextEntry
-        while (entry != null) {
-            if (entry.name.startsWith("Morrowind/")) {
-                return true
-            }
-            zipIn.closeEntry()
-            entry = zipIn.nextEntry
-        }
-    }
-    return false
-}
 

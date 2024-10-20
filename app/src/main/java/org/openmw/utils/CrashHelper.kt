@@ -2,6 +2,7 @@ package org.openmw.utils
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import org.openmw.Constants
 import java.io.File
 import java.io.FileWriter
@@ -24,9 +25,17 @@ class CaptureCrash : Thread.UncaughtExceptionHandler {
     private fun saveCrashLog(throwable: Throwable) {
         try {
             val logFile = File(Constants.CRASH_FILE)
-            if (!logFile.exists())
-                logFile.createNewFile()
-
+            if (!logFile.exists()) {
+                Log.d("LogFile", "File does not exist: ${logFile.path}")
+                val created = logFile.createNewFile()
+                if (created) {
+                    Log.d("LogFile", "File created: ${logFile.path}")
+                } else {
+                    Log.d("LogFile", "File creation failed: ${logFile.path}")
+                }
+            } else {
+                Log.d("LogFile", "File already exists: ${logFile.path}")
+            }
 
             FileWriter(logFile, true).use { writer ->
                 writer.append("Device: ${Build.MODEL} (API ${Build.VERSION.SDK_INT})\n")
@@ -61,7 +70,15 @@ class LogCat(val context: Context) {
     fun enableLogcat() {
         val logcatFile = File(Constants.LOGCAT_FILE)
         if (logcatFile.exists()) {
-            logcatFile.delete()
+            Log.d("LogCat", "File exists: ${logcatFile.path}")
+            val deleted = logcatFile.delete()
+            if (deleted) {
+                Log.d("LogCat", "File deleted: ${logcatFile.path}")
+            } else {
+                Log.d("LogCat", "File deletion failed: ${logcatFile.path}")
+            }
+        } else {
+            Log.d("LogCat", "File does not exist: ${logcatFile.path}")
         }
 
         val processBuilder = ProcessBuilder()

@@ -8,14 +8,25 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.datastore.preferences.core.edit
@@ -48,6 +60,11 @@ fun HomeScreen(context: Context, modValues: List<ModValue>, navigateToSettings: 
     val transparentBlack = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
     val currentContext = LocalContext.current
     var savedPath by remember { mutableStateOf<String?>(null) }
+    val buttonText = if (savedPath.isNullOrEmpty() || savedPath == "Game Files: ") {
+        "Select Games Files"
+    } else {
+        "Game Files: $savedPath"
+    }
 
     LaunchedEffect(Unit) {
         val dataStoreKey = stringPreferencesKey("game_files_uri")
@@ -80,22 +97,28 @@ fun HomeScreen(context: Context, modValues: List<ModValue>, navigateToSettings: 
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(top = 40.dp, bottom = 80.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Button(onClick = {
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        }
-                        openDocumentTreeLauncher.launch(intent)
-                    }) {
-                        Text(text = "Select Games Files", color = Color.White)
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                            }
+                            openDocumentTreeLauncher.launch(intent)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                        )
+                    ) {
+                        Text(text = buttonText, color = Color.White)
                     }
-
-                    savedPath?.let {
-                        Text(text = "Game Files: $it", color = Color.White)
-                    }
+                    Spacer(modifier = Modifier.width(16.dp))
                     ModValuesList(modValues)
                 }
             }
@@ -103,9 +126,24 @@ fun HomeScreen(context: Context, modValues: List<ModValue>, navigateToSettings: 
             BottomAppBar(
                 containerColor = transparentBlack,
                 actions = {
-                    Button(onClick = { navigateToSettings() }) {
-                        Text("OpenMW Settings")
+                    Button(
+                        onClick = { navigateToSettings() },
+                        modifier = Modifier
+                            .size(80.dp)
+                            .background(Color.Transparent),
+                        shape = CircleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings, // Make sure you have the correct icon import
+                            contentDescription = "Settings",
+                            modifier = Modifier.size(80.dp),
+                            tint = Color.White
+                        )
                     }
+
                 },
                 floatingActionButton = {
                     MyFloatingActionButton(context)
@@ -126,4 +164,3 @@ fun getAbsolutePathFromUri(context: Context, uri: Uri): String? {
     val path = documentFile?.uri?.path?.replace("/tree/primary:", "/storage/emulated/0/")
     return path?.substringBeforeLast("document")
 }
-

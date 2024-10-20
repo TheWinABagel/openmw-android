@@ -138,7 +138,7 @@ fun ModValuesList(modValues: List<ModValue>) {
     val view = LocalView.current
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
-    var ModPath by remember { mutableStateOf<String?>(null) }
+    var newModPath by remember { mutableStateOf<String?>(null) }
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val currentList = categorizedModValues[selectedTabIndex].toMutableList()
         val movedItem = currentList.removeAt(from.index)
@@ -153,7 +153,7 @@ fun ModValuesList(modValues: List<ModValue>) {
                 result.data?.data?.also { uri ->
                     val modsFragment = ModsFragment()
                     modsFragment.modDocumentTreeSelection(context, uri) { modPath ->
-                        ModPath = modPath
+                        newModPath = modPath
                     }
                 }
             }
@@ -182,7 +182,7 @@ fun ModValuesList(modValues: List<ModValue>) {
                 selected = selectedTabIndex == categories.size,
                 onClick = {
                     LaunchDocumentTree(openDocumentTreeLauncher, context) { modPath ->
-                        ModPath = modPath
+                        newModPath = modPath
                     }
                 },
                 text = { Text("Add Mod") }
@@ -232,7 +232,7 @@ fun ModValuesList(modValues: List<ModValue>) {
             items(categorizedModValues[selectedTabIndex], key = { it.originalIndex }) { modValue ->
                 var isChecked by remember { mutableStateOf(modValue.isChecked) }
                 ReorderableItem(reorderableLazyListState, key = modValue.originalIndex) {
-                    var isDragging by remember { mutableStateOf(false) }
+                    //var isDragging by remember { mutableStateOf(false) }
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = if (modValue.isChecked) Color.DarkGray else MaterialTheme.colorScheme.surface,

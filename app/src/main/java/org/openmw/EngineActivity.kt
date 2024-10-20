@@ -1,5 +1,6 @@
 package org.openmw
 
+
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Process
@@ -10,26 +11,34 @@ import android.view.KeyEvent
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
 import org.openmw.ui.controls.CustomCursorView
 import org.openmw.ui.overlay.GameControllerButtons
+import org.openmw.ui.overlay.HiddenMenu
 import org.openmw.ui.overlay.OverlayUI
 import org.openmw.ui.overlay.Thumbstick
+import org.openmw.ui.overlay.sendKeyEvent
 
 class EngineActivity : SDLActivity() {
     private var customCursorView: CustomCursorView? = null
@@ -101,6 +110,7 @@ class EngineActivity : SDLActivity() {
         val composeViewMenu = findViewById<ComposeView>(R.id.compose_overlayMenu)
         composeViewMenu.setContent {
             OverlayUI()
+            HiddenMenu()
         }
 
         // Setup Compose overlay for buttons
@@ -114,13 +124,56 @@ class EngineActivity : SDLActivity() {
                 // Toggle Custom Cursor Visibility Button
                 Button(
                     onClick = { toggleCustomCursor() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(50.dp)
                         .align(Alignment.End)
+                        .border(3.dp, Color.Black, shape = CircleShape) // Add border
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Mouse"
+                    Text(
+                        text = "M",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Button(
+                    onClick = {
+                        onNativeKeyDown(KeyEvent.KEYCODE_F)
+                        sendKeyEvent(KeyEvent.KEYCODE_F)
+                        onNativeKeyUp(KeyEvent.KEYCODE_F)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.size(50.dp).border(3.dp, Color.Black, shape = CircleShape)
+                ) {
+                    Text(
+                        text = "W",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                // Button to perform mouse click
+                Button(
+                    onClick = {
+                        customCursorView!!.performMouseClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    modifier = Modifier.size(50.dp).border(3.dp, Color.Black, shape = CircleShape)
+                ) {
+                    Text(
+                        text = "C",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
 

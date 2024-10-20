@@ -137,9 +137,14 @@ LaunchedEffect(Unit) {
                 }, label = "size transform"
             ) { targetExpanded ->
                 if (targetExpanded) {
-                    LazyRow(
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
+                                .padding(5.dp)
+                        ) {
+                        LazyRow(
                         modifier = Modifier
-                            .align(Alignment.TopEnd)
                             .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
                             .padding(5.dp)
                     ) {
@@ -211,6 +216,44 @@ LaunchedEffect(Unit) {
                                     SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
                                 }
                             })
+                        }
+                    }
+                    LazyRow(
+                        modifier = Modifier
+                            .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
+                            .padding(5.dp)
+                    ) {
+                        item {
+                            // Button for J (Journal)
+                            IconButton(onClick = {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_J)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_J)
+                            }) {
+                                Text(text = "Journal", color = Color.White, fontSize = 10.sp)
+                            }
+                            // Button for F5 (Quicksave)
+                            IconButton(onClick = {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F5)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F5)
+                            }) {
+                                Text(text = "Quicksave", color = Color.White, fontSize = 10.sp)
+                            }
+
+                            // Button for F6 (Quickload)
+                            IconButton(onClick = {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F6)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F6)
+                            }) {
+                                Text(text = "Quickload", color = Color.White, fontSize = 10.sp)
+                            }
+
+                            // Button for F12 (Screenshot)
+                            IconButton(onClick = {
+                                SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F12)
+                                SDLActivity.onNativeKeyUp(KeyEvent.KEYCODE_F12)
+                            }) {
+                                Text(text = "Screenshot", color = Color.White, fontSize = 10.sp)
+                            }
                             Spacer(modifier = Modifier.width(16.dp))
                             // F2 Icon
                             IconButton(onClick = {
@@ -241,6 +284,7 @@ LaunchedEffect(Unit) {
                             }
                         }
                     }
+                }
                 } else {
                     Icon(Icons.Rounded.Settings, contentDescription = "Settings")
                 }
@@ -442,7 +486,6 @@ fun Thumbstick(
     }
 }
 
-
 @Composable
 fun GameControllerButtons(
 
@@ -532,7 +575,6 @@ fun GameControllerButtons(
                             fontWeight = FontWeight.Bold
                         )
                     }
-
                     Button(
                         onClick = {
                             SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
@@ -552,7 +594,6 @@ fun GameControllerButtons(
                         )
                     }
                 }
-
                 Button(
                     onClick = {
                         SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
@@ -572,7 +613,6 @@ fun GameControllerButtons(
                     )
                 }
             }
-
         }
     }
 }
