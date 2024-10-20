@@ -12,7 +12,7 @@ import android.view.View
 
 class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
     private val paint = Paint().apply {
-        color = Color.BLACK
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
     private var cursorX = 0f
