@@ -141,10 +141,11 @@ fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
                             containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
                         )
                     ) {
-                        Text(text = "Export Crash and Logcat Files", color = Color.White)
+                        Text(text = "Export all logs", color = Color.White)
                     }
                     OpenLogFileDialogButton()
                     OpenLogcatLogFileDialogButton()
+                    OpenOpenMWLogFileDialogButton()
                 }
                 if (showDialog.value) {
                     AlertDialog(
@@ -340,5 +341,58 @@ fun OpenLogcatLogFileDialogButton() {
     }
 }
 
+@Composable
+fun OpenOpenMWLogFileDialogButton() {
+    val context = LocalContext.current
+    val showDialog = remember { mutableStateOf(false) }
+    val logContent = remember { mutableStateOf("") }
 
+    if (showDialog.value) {
+        logContent.value = readLogFile(Constants.OPENMW_LOG)
+        AlertDialog(
+            onDismissRequest = { showDialog.value = false },
+            title = { Text("OpenMW Log") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(8.dp)
+                ) {
+                    Text(
+                        text = logContent.value,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+            },
+            confirmButton = {
+                Row {
+                    Button(onClick = { showDialog.value = false }) {
+                        Text("OK")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(onClick = {
+                        copyToClipboard(context, logContent.value)
+                    }) {
+                        Text("Copy")
+                    }
+                }
+            }
+        )
+    }
+
+    Button(
+        onClick = {
+            showDialog.value = true
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp),
+        shape = RectangleShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+        )
+    ) {
+        Text("Open OpenMW Log", color = Color.White)
+    }
+}
 

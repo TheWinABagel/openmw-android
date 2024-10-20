@@ -268,6 +268,7 @@ fun importSpecificFile(context: Context, filePattern: String) {
 fun exportCrashAndLogcatFiles(context: Context) {
     val crashFile = File(Constants.CRASH_FILE)
     val logcatFile = File(Constants.LOGCAT_FILE)
+    val openmwlog = File(Constants.OPENMW_LOG)
     val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
 
     try {
@@ -276,6 +277,12 @@ fun exportCrashAndLogcatFiles(context: Context) {
             Toast.makeText(context, "Crash file exported successfully", Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(context, "Crash file does not exist", Toast.LENGTH_SHORT).show()
+        }
+        if (crashFile.exists()) {
+            crashFile.copyTo(File(downloadFolder, openmwlog.name), overwrite = true)
+            Toast.makeText(context, "Openmw Log file exported successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Openmw Log does not exist", Toast.LENGTH_SHORT).show()
         }
         if (logcatFile.exists()) {
             logcatFile.copyTo(File(downloadFolder, logcatFile.name), overwrite = true)

@@ -138,7 +138,7 @@ fun ModValuesList(modValues: List<ModValue>) {
     val view = LocalView.current
     val context = LocalContext.current
     var showDialog by remember { mutableStateOf(false) }
-    var newModPath by remember { mutableStateOf<String?>(null) }
+    var ModPath by remember { mutableStateOf<String?>(null) }
     val reorderableLazyListState = rememberReorderableLazyListState(lazyListState) { from, to ->
         val currentList = categorizedModValues[selectedTabIndex].toMutableList()
         val movedItem = currentList.removeAt(from.index)
@@ -153,7 +153,7 @@ fun ModValuesList(modValues: List<ModValue>) {
                 result.data?.data?.also { uri ->
                     val modsFragment = ModsFragment()
                     modsFragment.modDocumentTreeSelection(context, uri) { modPath ->
-                        newModPath = modPath
+                        ModPath = modPath
                     }
                 }
             }
@@ -182,7 +182,7 @@ fun ModValuesList(modValues: List<ModValue>) {
                 selected = selectedTabIndex == categories.size,
                 onClick = {
                     LaunchDocumentTree(openDocumentTreeLauncher, context) { modPath ->
-                        newModPath = modPath
+                        ModPath = modPath
                     }
                 },
                 text = { Text("Add Mod") }

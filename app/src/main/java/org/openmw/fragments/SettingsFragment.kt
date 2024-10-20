@@ -91,23 +91,16 @@ class SettingsFragment : ComponentActivity() {
                     // Modify base_cfg file
                     val fileName = Constants.OPENMW_CFG
                     // Define the regex pattern to match any user-data value
-                    val regex = Regex("""user-data=".*?"""")
-                    val replacementString = """user-data="${Constants.USER_FILE_STORAGE}""""
-                    val regexData = Regex("""data=".*?"""")
+
+                    val regexData = Regex("""^data\s*=\s*".*?"""")
                     val replacementStringData = """data="${modPath}Data Files""""
                     val file = File(fileName)
 
                     // Read and replace lines in the file
                     val lines = file.readLines().map { line ->
                         var modifiedLine = line
-                        if (line.contains(regex)) {
-                            modifiedLine = modifiedLine.replace(regex, replacementString)
-                        }
                         if (line.contains(regexData)) {
                             modifiedLine = modifiedLine.replace(regexData, replacementStringData)
-                        }
-                        if (line.contains("user-data=\"?userdata?\"")) {
-                            modifiedLine = modifiedLine.replace("user-data=\"?userdata?\"", "user-data=${Constants.USER_FILE_STORAGE}")
                         }
                         if (line.contains("resources=./resources")) {
                             modifiedLine = modifiedLine.replace("resources=./resources", "resources=${Constants.RESOURCES}")

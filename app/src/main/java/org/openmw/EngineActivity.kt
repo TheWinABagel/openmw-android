@@ -2,6 +2,7 @@ package org.openmw
 
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Bundle
 import android.os.Process
 import android.system.ErrnoException
@@ -19,9 +20,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -39,10 +44,12 @@ import org.openmw.ui.overlay.HiddenMenu
 import org.openmw.ui.overlay.OverlayUI
 import org.openmw.ui.overlay.Thumbstick
 import org.openmw.ui.overlay.sendKeyEvent
+import org.openmw.utils.LogCat
 
 class EngineActivity : SDLActivity() {
     private var customCursorView: CustomCursorView? = null
     private lateinit var sdlView: View
+
     init {
         setEnvironmentVariables()
     }
@@ -54,6 +61,10 @@ class EngineActivity : SDLActivity() {
             Log.e("EngineActivity", "Error loading libraries", e)
             emptyArray()
         }
+    }
+
+    override fun getMainSharedObject(): String {
+        return OPENMW_MAIN_LIB
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -80,8 +91,6 @@ class EngineActivity : SDLActivity() {
         // Create an instance of LogCat and call enableLogcat
         //val logCat = LogCat(this)
         //logCat.enableLogcat()
-        Log.d("EngineActivity", "parentDir: ${filesDir.parent}")
-        Log.d("EngineActivity", "USER_FILE_STORAGE: ${Constants.USER_FILE_STORAGE}")
         getPathToJni(filesDir.parent!!, Constants.USER_FILE_STORAGE)
 
         // Setup Compose overlay for thumbstick
@@ -98,11 +107,7 @@ class EngineActivity : SDLActivity() {
                     onNativeKeyUp(KeyEvent.KEYCODE_S)
                     onNativeKeyUp(KeyEvent.KEYCODE_D)
                     onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT) // Ensure SHIFT is also released
-                },
-                onShiftWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
-                onShiftAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
-                onShiftSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) },
-                onShiftDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D); onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT) }
+                }
             )
         }
 
@@ -139,7 +144,6 @@ class EngineActivity : SDLActivity() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
                 Button(
                     onClick = {
                         onNativeKeyDown(KeyEvent.KEYCODE_F)
@@ -158,7 +162,6 @@ class EngineActivity : SDLActivity() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
                 // Button to perform mouse click
                 Button(
                     onClick = {
@@ -176,7 +179,6 @@ class EngineActivity : SDLActivity() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-
                 // Game Controller Buttons at the Bottom
                 GameControllerButtons()
             }
