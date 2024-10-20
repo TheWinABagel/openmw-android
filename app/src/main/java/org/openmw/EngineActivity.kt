@@ -106,7 +106,6 @@ class EngineActivity : SDLActivity() {
                     onNativeKeyUp(KeyEvent.KEYCODE_A)
                     onNativeKeyUp(KeyEvent.KEYCODE_S)
                     onNativeKeyUp(KeyEvent.KEYCODE_D)
-                    onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT) // Ensure SHIFT is also released
                 }
             )
         }
