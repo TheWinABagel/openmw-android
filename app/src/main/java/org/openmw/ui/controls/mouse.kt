@@ -3,31 +3,57 @@ package org.openmw.ui.controls
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.content.ContextCompat
+import org.openmw.Constants
+import org.openmw.R
+import java.io.File
 
 class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
-    private val paint = Paint().apply { color = Color.WHITE; style = Paint.Style.FILL }
     private var cursorX = 0f
     private var cursorY = 0f
-    private var offset = -150f
+    private var offsetX = 0f
+    private var offsetY = 0f
     var sdlView: View? = null
     private var isCursorEnabled = true
 
+    private val cursorIcon = ContextCompat.getDrawable(context, R.drawable.pointer_icon)!!
+
+    private fun readSettingsFile(): Triple<Int, Int, Float> {
+        val settingsFile = File(Constants.SETTINGS_FILE)
+        var resolutionX = 0
+        var resolutionY = 0
+        var scalingFactor = 1.0f
+
+        settingsFile.forEachLine { line ->
+            when {
+                line.startsWith("resolution x =") -> resolutionX = line.split("=").last().trim().toInt()
+                line.startsWith("resolution y =") -> resolutionY = line.split("=").last().trim().toInt()
+                line.startsWith("scaling factor =") -> scalingFactor = line.split("=").last().trim().toFloat()
+            }
+        }
+
+        return Triple(resolutionX, resolutionY, scalingFactor)
+    }
+
+    private val settings = readSettingsFile()
+    private val resolutionX = settings.first
+    private val resolutionY = settings.second
+
     fun setCursorPosition(x: Float, y: Float) {
-        cursorX = x + offset
-        cursorY = y + offset
+        cursorX = x.coerceIn(0f, width.toFloat() - cursorIcon.intrinsicWidth)
+        cursorY = y.coerceIn(0f, height.toFloat() - cursorIcon.intrinsicHeight)
+        Log.d("CustomCursorView", "Cursor Position: X=$cursorX, Y=$cursorY")
         invalidate()
     }
 
     fun performMouseClick() {
-        val adjustedX = cursorX
-        val adjustedY = cursorY
+        val adjustedX = cursorX * (resolutionX.toFloat() / width.toFloat())
+        val adjustedY = cursorY * (resolutionY.toFloat() / height.toFloat())
         val eventDown = MotionEvent.obtain(
             SystemClock.uptimeMillis(),
             SystemClock.uptimeMillis(),
@@ -54,15 +80,30 @@ class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, a
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (isCursorEnabled) {
-            canvas.drawCircle(cursorX, cursorY, 20f, paint)
+            val iconSize = 72
+            cursorIcon.setBounds(cursorX.toInt(), cursorY.toInt(), cursorX.toInt() + iconSize, cursorY.toInt() + iconSize)
+            cursorIcon.draw(canvas)
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
-            MotionEvent.ACTION_MOVE, MotionEvent.ACTION_DOWN -> {
-                setCursorPosition(event.x, event.y)
+            MotionEvent.ACTION_DOWN -> {
+                offsetX = event.x - cursorX
+                offsetY = event.y - cursorY
+                Log.d("CustomCursorView", "Touch Down at X: ${event.x}, Y: ${event.y}")
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                setCursorPosition(event.x - offsetX, event.y - offsetY)
+                Log.d("CustomCursorView", "Touch Move at X: ${event.x}, Y: ${event.y}")
+                return true
+            }
+            MotionEvent.ACTION_UP -> {
+                offsetX = event.x - cursorX
+                offsetY = event.y - cursorY
+                Log.d("CustomCursorView", "Touch Released at X: ${event.x}, Y: ${event.y}")
                 return true
             }
         }

@@ -82,6 +82,13 @@ class MainActivity : ComponentActivity() {
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
+        // a little extra protection from people deleting the thumbstick by mistake
+        val file = File("${Constants.USER_CONFIG}/UI.cfg")
+        if (!file.exists()) {
+            file.createNewFile()
+            file.appendText("ButtonID_99(200.0;200.56776;281.6349;false;29)\n")
+        }
+
         setContent {
             OpenMWTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -99,8 +106,8 @@ class MainActivity : ComponentActivity() {
         val file = File(Constants.SETTINGS_FILE)
         val lines = file.readLines().map { line ->
             when {
-                line.startsWith("resolution y =") -> "resolution y = $height" // $height
-                line.startsWith("resolution x =") -> "resolution x = $width" // $width
+                line.startsWith("resolution y =") -> "resolution y = $width" // mix these up to convert to landscape
+                line.startsWith("resolution x =") -> "resolution x = $height"
                 else -> line
             }
         }

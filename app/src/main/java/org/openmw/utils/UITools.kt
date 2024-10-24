@@ -1,5 +1,6 @@
 package org.openmw.utils
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
@@ -10,6 +11,8 @@ import android.os.StatFs
 import org.openmw.ui.overlay.MemoryInfo
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import kotlin.math.ln
+import kotlin.math.pow
 
 fun getAvailableStorageSpace(context: Context): String {
     val storageDirectory = Environment.getExternalStorageDirectory()
@@ -29,12 +32,13 @@ fun getMemoryInfo(context: Context): MemoryInfo {
     return MemoryInfo(totalMemory, availableMemory, usedMemory)
 }
 
+@SuppressLint("DefaultLocale")
 fun humanReadableByteCountBin(bytes: Long): String {
     val unit = 1024
     if (bytes < unit) return "$bytes B"
-    val exp = (Math.log(bytes.toDouble()) / Math.log(unit.toDouble())).toInt()
+    val exp = (ln(bytes.toDouble()) / ln(unit.toDouble())).toInt()
     val pre = "KMGTPE"[exp - 1] + "i"
-    return String.format("%.1f %sB", bytes / Math.pow(unit.toDouble(), exp.toDouble()), pre)
+    return String.format("%.1f %sB", bytes / unit.toDouble().pow(exp.toDouble()), pre)
 }
 
 fun getBatteryStatus(context: Context): String {

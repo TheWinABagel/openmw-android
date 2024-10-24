@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.openmw.Constants
 import org.openmw.getAbsolutePathFromUri
-import org.openmw.storeGameFilesUri
 import org.openmw.utils.ModValue
 import org.openmw.utils.writeModValuesToFile
 
@@ -31,7 +30,6 @@ class ModsFragment {
         try {
             context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             CoroutineScope(Dispatchers.IO).launch {
-                storeGameFilesUri(context, uri)
                 val ignoreList = listOf("Morrowind.bsa", "Tribunal.bsa", "Bloodmoon.bsa")
                 val extensions = arrayOf("bsa", "esm", "esp", "omwaddon", "omwgame", "omwscripts")
                 val selectedDirectory = DocumentFile.fromTreeUri(context, uri)

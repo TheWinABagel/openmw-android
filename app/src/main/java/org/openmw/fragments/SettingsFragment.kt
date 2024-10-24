@@ -58,7 +58,6 @@ class SettingsFragment : ComponentActivity() {
                 val extensions = arrayOf("esm", "bsa")
                 val modDirectory = dataFilesFolder ?: selectedDirectory
                 val files = findFilesWithExtensions(modDirectory, extensions)
-                val modPath = getAbsolutePathFromUri(context, uri)
 
                 if (iniFile != null && dataFilesFolder != null && dataFilesFolder.isDirectory) {
                     // Update savedPath after setting it with the document tree
@@ -93,7 +92,7 @@ class SettingsFragment : ComponentActivity() {
                     // Define the regex pattern to match any user-data value
 
                     val regexData = Regex("""^data\s*=\s*".*?"""")
-                    val replacementStringData = """data="${modPath}Data Files""""
+                    val replacementStringData = """data="${savedPath}Data Files""""
                     val file = File(fileName)
 
                     // Read and replace lines in the file

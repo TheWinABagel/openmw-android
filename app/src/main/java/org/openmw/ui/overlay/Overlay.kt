@@ -1,55 +1,44 @@
 package org.openmw.ui.overlay
 
 import android.content.Context
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.view.KeyEvent
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
-import org.libsdl.app.SDLActivity
 import org.libsdl.app.SDLActivity.onNativeKeyDown
 import org.libsdl.app.SDLActivity.onNativeKeyUp
+import org.openmw.ui.controls.UIStateManager
 import org.openmw.utils.*
-import kotlin.math.abs
-import kotlin.math.hypot
+
+fun sendKeyEvent(keyCode: Int) {
+    onNativeKeyDown(keyCode)
+    onNativeKeyUp(keyCode)
+}
 
 data class MemoryInfo(
     val totalMemory: String,
@@ -57,16 +46,10 @@ data class MemoryInfo(
     val usedMemory: String
 )
 
-object UIStateManager {
-    var isUIHidden by mutableStateOf(false)
-    var visible by mutableStateOf(true)
-    var isVibrationEnabled by mutableStateOf(true)
-    var isRunEnabled by mutableStateOf(false)
-}
-
 @Composable
-fun OverlayUI() {
+fun OverlayUI(engineActivityContext: Context) {
     val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
     var memoryInfoText by remember { mutableStateOf("") }
     var batteryStatus by remember { mutableStateOf("") }
     var logMessages by remember { mutableStateOf("") }
@@ -110,10 +93,7 @@ fun OverlayUI() {
             delay(1000)
         }
     }
-
     Box(modifier = Modifier.fillMaxSize()) {
-        var expanded by remember { mutableStateOf(false) }
-
         Surface(
             color = Color.Transparent,
             onClick = { expanded = !expanded }
@@ -193,7 +173,7 @@ fun OverlayUI() {
                                 Text(text = "Run / Walk", color = Color.White, fontSize = 10.sp)
                                 Switch(checked = isRunEnabled, onCheckedChange = {
                                     UIStateManager.isRunEnabled = it
-                                    if (it) SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
+                                    if (it) onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
                                     else onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
                                 })
                                 // F10 Toggle Switch
@@ -201,10 +181,10 @@ fun OverlayUI() {
                                 Switch(checked = isF10Enabled, onCheckedChange = {
                                     isF10Enabled = it
                                     if (it) {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F10)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F10)
                                     } else {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F10)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F10)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F10)
                                     }
                                 })
@@ -213,10 +193,10 @@ fun OverlayUI() {
                                 Switch(checked = isBacktickEnabled, onCheckedChange = {
                                     isBacktickEnabled = it
                                     if (it) {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
                                         onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
                                     } else {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
                                         onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
                                     }
                                 })
@@ -230,14 +210,14 @@ fun OverlayUI() {
                             item {
                                 // Button for J (Journal)
                                 IconButton(onClick = {
-                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_J)
+                                    onNativeKeyDown(KeyEvent.KEYCODE_J)
                                     onNativeKeyUp(KeyEvent.KEYCODE_J)
                                 }) {
                                     Text(text = "Journal", color = Color.White, fontSize = 10.sp)
                                 }
                                 // Button for F5 (Quicksave)
                                 IconButton(onClick = {
-                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F5)
+                                    onNativeKeyDown(KeyEvent.KEYCODE_F5)
                                     onNativeKeyUp(KeyEvent.KEYCODE_F5)
                                 }) {
                                     Text(text = "Quicksave", color = Color.White, fontSize = 10.sp)
@@ -245,7 +225,7 @@ fun OverlayUI() {
 
                                 // Button for F6 (Quickload)
                                 IconButton(onClick = {
-                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F6)
+                                    onNativeKeyDown(KeyEvent.KEYCODE_F6)
                                     onNativeKeyUp(KeyEvent.KEYCODE_F6)
                                 }) {
                                     Text(text = "Quickload", color = Color.White, fontSize = 10.sp)
@@ -253,7 +233,7 @@ fun OverlayUI() {
 
                                 // Button for F12 (Screenshot)
                                 IconButton(onClick = {
-                                    SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F12)
+                                    onNativeKeyDown(KeyEvent.KEYCODE_F12)
                                     onNativeKeyUp(KeyEvent.KEYCODE_F12)
                                 }) {
                                     Text(text = "Screenshot", color = Color.White, fontSize = 10.sp)
@@ -263,10 +243,10 @@ fun OverlayUI() {
                                 IconButton(onClick = {
                                     isF2Enabled = !isF2Enabled
                                     if (isF2Enabled) {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F2)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F2)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F2)
                                     } else {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F2)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F2)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F2)
                                     }
                                 }) {
@@ -277,10 +257,10 @@ fun OverlayUI() {
                                 IconButton(onClick = {
                                     isF3Enabled = !isF3Enabled
                                     if (isF3Enabled) {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F3)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F3)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F3)
                                     } else {
-                                        SDLActivity.onNativeKeyDown(KeyEvent.KEYCODE_F3)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_F3)
                                         onNativeKeyUp(KeyEvent.KEYCODE_F3)
                                     }
                                 }) {
@@ -291,6 +271,32 @@ fun OverlayUI() {
                     }
                 } else {
                     Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                    Button(
+                        onClick = {
+                            onNativeKeyDown(KeyEvent.KEYCODE_J)
+                            onNativeKeyUp(KeyEvent.KEYCODE_J)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .padding(start = 60.dp)
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = "Sneak", tint = Color.Black)
+                    }
+                    Button(
+                        onClick = {
+                            onNativeKeyDown(KeyEvent.KEYCODE_T)
+                            onNativeKeyUp(KeyEvent.KEYCODE_T)
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .padding(start = 20.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Rest", tint = Color.Black)
+                    }
                 }
             }
         }
@@ -343,272 +349,4 @@ fun OverlayUI() {
             }
         }
     }
-
-}
-
-@Suppress("DEPRECATION")
-fun vibrate(context: Context) {
-    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-    if (vibrator.hasVibrator()) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE))
-        }
-    }
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-fun Thumbstick(
-    onWClick: () -> Unit,
-    onAClick: () -> Unit,
-    onSClick: () -> Unit,
-    onDClick: () -> Unit,
-    onRelease: () -> Unit
-) {
-    val density = LocalDensity.current
-    val radiusPx = with(density) { 75.dp.toPx() }
-    val deadZone = 0.2f * radiusPx
-    var touchState by remember { mutableStateOf(Offset(0f, 0f)) }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(200.dp)
-                .border(2.dp, Color.Black, shape = CircleShape)
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            val location = Offset(offset.x, offset.y)
-                            val isInBounds = hypot(location.x - radiusPx, location.y - radiusPx) <= radiusPx
-                            if (isInBounds) {
-                                touchState = location - Offset(radiusPx, radiusPx)
-                            }
-                        },
-                        onDrag = { change, dragAmount ->
-                            val newOffset = touchState + Offset(dragAmount.x, dragAmount.y)
-                            val isInBounds = hypot(newOffset.x, newOffset.y) <= radiusPx
-                            if (isInBounds) {
-                                touchState = newOffset
-                                val xRatio = touchState.x / radiusPx
-                                val yRatio = touchState.y / radiusPx
-
-                                onNativeKeyUp(KeyEvent.KEYCODE_W)
-                                onNativeKeyUp(KeyEvent.KEYCODE_A)
-                                onNativeKeyUp(KeyEvent.KEYCODE_S)
-                                onNativeKeyUp(KeyEvent.KEYCODE_D)
-
-                                when {
-                                    abs(yRatio) > abs(xRatio) -> {
-                                        if (touchState.y < -deadZone) onWClick()
-                                        if (touchState.y > deadZone) onSClick()
-                                    }
-                                    abs(xRatio) > abs(yRatio) -> {
-                                        if (touchState.x < -deadZone) onAClick()
-                                        if (touchState.x > deadZone) onDClick()
-                                    }
-                                }
-                            }
-                        },
-                        onDragEnd = {
-                            touchState = Offset.Zero
-                            onNativeKeyUp(KeyEvent.KEYCODE_W)
-                            onNativeKeyUp(KeyEvent.KEYCODE_A)
-                            onNativeKeyUp(KeyEvent.KEYCODE_S)
-                            onNativeKeyUp(KeyEvent.KEYCODE_D)
-                            onRelease()
-                        },
-                        onDragCancel = {
-                            touchState = Offset.Zero
-                            onNativeKeyUp(KeyEvent.KEYCODE_W)
-                            onNativeKeyUp(KeyEvent.KEYCODE_A)
-                            onNativeKeyUp(KeyEvent.KEYCODE_S)
-                            onNativeKeyUp(KeyEvent.KEYCODE_D)
-                            onRelease()
-                        }
-                    )
-                }
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(25.dp)
-                    .offset(
-                        x = (touchState.x / density.density).dp,
-                        y = (touchState.y / density.density).dp
-                    )
-                    .background(
-                        Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f),
-                        shape = CircleShape
-                    )
-            )
-        }
-    }
-}
-
-
-
-@Composable
-fun GameControllerButtons(
-
-) {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val visible = UIStateManager.visible
-    var isVibrationEnabled = UIStateManager.isVibrationEnabled
-
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInVertically(
-            initialOffsetY = { with(density) { -20.dp.roundToPx() } },
-            animationSpec = tween(durationMillis = 1000) // Adjust the duration as needed
-        ) + expandVertically(
-            expandFrom = Alignment.Bottom,
-            animationSpec = tween(durationMillis = 1000)
-        ) + fadeIn(
-            initialAlpha = 0.3f,
-            animationSpec = tween(durationMillis = 1000)
-        ),
-        exit = slideOutVertically(
-            targetOffsetY = { with(density) { -20.dp.roundToPx() } },
-            animationSpec = tween(durationMillis = 1000)
-        ) + shrinkVertically(
-            animationSpec = tween(durationMillis = 1000)
-        ) + fadeOut(
-            animationSpec = tween(durationMillis = 1000)
-        )
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(1.dp), // Adjusted spacing
-                modifier = Modifier.align(Alignment.BottomEnd)
-            ) {
-                Button(
-                    onClick = {
-                        onNativeKeyDown(KeyEvent.KEYCODE_E)
-                        sendKeyEvent(KeyEvent.KEYCODE_E)
-                        onNativeKeyUp(KeyEvent.KEYCODE_E)
-                        if (isVibrationEnabled) {
-                            vibrate(context)
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    modifier = Modifier
-                        .size(50.dp)
-                        .border(1.dp, Color.Black, shape = CircleShape),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = "Y",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceEvenly, // Adjusted spacing
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.width(200.dp) // Sets the fixed width for the row
-                ) {
-                    Button(
-                        onClick = {
-                            onNativeKeyDown(KeyEvent.KEYCODE_SPACE)
-                            sendKeyEvent(KeyEvent.KEYCODE_SPACE)
-                            onNativeKeyUp(KeyEvent.KEYCODE_SPACE)
-                            if (isVibrationEnabled) {
-                                vibrate(context)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .size(50.dp)
-                            .border(1.dp, Color.Black, shape = CircleShape),
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = "X",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            onNativeKeyDown(KeyEvent.KEYCODE_NUMPAD_DOT)
-                            sendKeyEvent(KeyEvent.KEYCODE_NUMPAD_DOT)
-                            onNativeKeyUp(KeyEvent.KEYCODE_NUMPAD_DOT)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .size(50.dp)
-                            .border(3.dp, Color.Black, shape = CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Star,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            onNativeKeyDown(KeyEvent.KEYCODE_ESCAPE)
-                            sendKeyEvent(KeyEvent.KEYCODE_ESCAPE)
-                            onNativeKeyUp(KeyEvent.KEYCODE_ESCAPE)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .size(50.dp)
-                            .border(1.dp, Color.Black, shape = CircleShape),
-                        shape = CircleShape
-                    ) {
-                        Text(
-                            text = "B",
-                            color = Color.White,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                Button(
-                    onClick = {
-                        onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
-                        sendKeyEvent(KeyEvent.KEYCODE_ENTER)
-                        onNativeKeyUp(KeyEvent.KEYCODE_ENTER)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    modifier = Modifier
-                        .size(50.dp)
-                        .border(1.dp, Color.Black, shape = CircleShape),
-                    shape = CircleShape
-                ) {
-                    Text(
-                        text = "A",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-fun sendKeyEvent(keyCode: Int) {
-    onNativeKeyDown(keyCode)
-    onNativeKeyUp(keyCode)
 }

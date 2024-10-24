@@ -1,8 +1,6 @@
 package org.openmw
 
-
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Bundle
 import android.os.Process
 import android.system.ErrnoException
@@ -15,17 +13,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,17 +32,21 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.libsdl.app.SDLActivity
+import org.openmw.ui.controls.ButtonState
 import org.openmw.ui.controls.CustomCursorView
-import org.openmw.ui.overlay.GameControllerButtons
-import org.openmw.ui.overlay.HiddenMenu
+import org.openmw.ui.controls.DynamicButtonManager
+import org.openmw.ui.controls.ResizableDraggableButton
+import org.openmw.ui.controls.ResizableDraggableThumbstick
+import org.openmw.ui.controls.UIStateManager
+import org.openmw.ui.controls.loadButtonState
+import org.openmw.ui.controls.saveButtonState
 import org.openmw.ui.overlay.OverlayUI
-import org.openmw.ui.overlay.Thumbstick
-import org.openmw.ui.overlay.sendKeyEvent
-import org.openmw.utils.LogCat
 
 class EngineActivity : SDLActivity() {
-    private var customCursorView: CustomCursorView? = null
+    private lateinit var customCursorView: CustomCursorView
     private lateinit var sdlView: View
+    private val createdButtons = mutableStateListOf<ButtonState>()
+    private var editMode = mutableStateOf(false)
 
     init {
         setEnvironmentVariables()
@@ -73,9 +71,19 @@ class EngineActivity : SDLActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.engine_activity)
         sdlView = getContentView()
-        customCursorView = findViewById<CustomCursorView>(R.id.customCursorView).apply {
-            sdlView = this@EngineActivity.sdlView // Set SDL view reference
+        customCursorView = findViewById(R.id.customCursorView)
+
+        customCursorView.apply {
+            sdlView = this@EngineActivity.sdlView
         }
+
+        // Ensure the correct initial state of the cursor
+        setupInitialCursorState()
+
+        // Load saved buttons
+        val allButtons = loadButtonState(this)
+        val thumbstick = allButtons.find { it.id == 99 }
+        createdButtons.addAll(allButtons.filter { it.id != 99 })
 
         // Add SDL view programmatically
         val sdlContainer = findViewById<FrameLayout>(R.id.sdl_container)
@@ -93,28 +101,50 @@ class EngineActivity : SDLActivity() {
         //logCat.enableLogcat()
         getPathToJni(filesDir.parent!!, Constants.USER_FILE_STORAGE)
 
-        // Setup Compose overlay for thumbstick
-        val composeView = findViewById<ComposeView>(R.id.compose_overlay)
-        composeView.setContent {
-            Thumbstick(
-                onWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W) },
-                onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
-                onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
-                onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
-                onRelease = {
-                    onNativeKeyUp(KeyEvent.KEYCODE_W)
-                    onNativeKeyUp(KeyEvent.KEYCODE_A)
-                    onNativeKeyUp(KeyEvent.KEYCODE_S)
-                    onNativeKeyUp(KeyEvent.KEYCODE_D)
-                }
-            )
-        }
-
         // Setup Compose overlay for buttons
         val composeViewMenu = findViewById<ComposeView>(R.id.compose_overlayMenu)
         composeViewMenu.setContent {
-            OverlayUI()
-            HiddenMenu()
+            OverlayUI(engineActivityContext = this)
+
+            createdButtons.forEach { button ->
+                ResizableDraggableButton(
+                    context = this@EngineActivity,
+                    id = button.id,
+                    keyCode = button.keyCode,
+                    editMode = editMode.value,
+                    onDelete = { deleteButton(button.id) }
+                )
+            }
+
+            thumbstick?.let {
+                ResizableDraggableThumbstick(
+                    context = this,
+                    id = 99,
+                    keyCode = it.keyCode,
+                    editMode = editMode.value,
+                    onWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W) },
+                    onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
+                    onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
+                    onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
+                    onRelease = {
+                        onNativeKeyUp(KeyEvent.KEYCODE_W)
+                        onNativeKeyUp(KeyEvent.KEYCODE_A)
+                        onNativeKeyUp(KeyEvent.KEYCODE_S)
+                        onNativeKeyUp(KeyEvent.KEYCODE_D)
+                    }
+                )
+            }
+
+            DynamicButtonManager(
+                context = this@EngineActivity,
+                onNewButtonAdded = { newButtonState ->
+                    createdButtons.add(newButtonState)
+                },
+                editMode = editMode,
+                createdButtons = createdButtons // Pass created buttons to DynamicButtonManager
+            )
+
+            //HiddenMenu() // RadialMenu.kt
         }
 
         // Setup Compose overlay for buttons
@@ -143,52 +173,27 @@ class EngineActivity : SDLActivity() {
                         fontWeight = FontWeight.Bold
                     )
                 }
-                Button(
-                    onClick = {
-                        onNativeKeyDown(KeyEvent.KEYCODE_F)
-                        sendKeyEvent(KeyEvent.KEYCODE_F)
-                        onNativeKeyUp(KeyEvent.KEYCODE_F)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    modifier = Modifier.size(50.dp).border(3.dp, Color.Black, shape = CircleShape)
-                ) {
-                    Text(
-                        text = "W",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                // Button to perform mouse click
-                Button(
-                    onClick = {
-                        customCursorView!!.performMouseClick()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    modifier = Modifier.size(50.dp).border(3.dp, Color.Black, shape = CircleShape)
-                ) {
-                    Text(
-                        text = "C",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                // Game Controller Buttons at the Bottom
-                GameControllerButtons()
             }
         }
     }
 
-    private var isCustomCursorEnabled = false
+    private fun setupInitialCursorState() {
+        if (UIStateManager.isCustomCursorEnabled) {
+            customCursorView.visibility = View.VISIBLE
+        } else {
+            customCursorView.visibility = View.GONE
+        }
+    }
+
+    private fun deleteButton(buttonId: Int) {
+        createdButtons.removeIf { it.id == buttonId }
+        saveButtonState(this, createdButtons + loadButtonState(this).filter { it.id == 99 }) // Ensure thumbstick is not removed
+    }
+
     fun toggleCustomCursor() {
         runOnUiThread {
-            isCustomCursorEnabled = !isCustomCursorEnabled
-            customCursorView?.visibility = if (isCustomCursorEnabled) View.VISIBLE else View.GONE
+            UIStateManager.isCustomCursorEnabled = !UIStateManager.isCustomCursorEnabled
+            customCursorView.visibility = if (UIStateManager.isCustomCursorEnabled) View.VISIBLE else View.GONE
         }
     }
 

@@ -617,4 +617,3 @@ fun ExpandableBox(expanded: MutableState<Boolean>) {
         }
     }
 }
-
