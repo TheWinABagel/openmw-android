@@ -2,6 +2,7 @@ package org.openmw.ui.controls
 
 import android.content.Context
 import android.view.KeyEvent
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,8 +59,17 @@ object UIStateManager {
     var isUIHidden by mutableStateOf(false)
     var visible by mutableStateOf(true)
     var isVibrationEnabled by mutableStateOf(true)
-    var isRunEnabled by mutableStateOf(false)
     var isCustomCursorEnabled by mutableStateOf(false)
+
+    // Add the shared states
+    var memoryInfoText by mutableStateOf("")
+    var batteryStatus by mutableStateOf("")
+    var logMessages by mutableStateOf("")
+    var isMemoryInfoEnabled by mutableStateOf(false)
+    var isBatteryStatusEnabled by mutableStateOf(false)
+    var isLoggingEnabled by mutableStateOf(false)
+    var isLogcatEnabled by mutableStateOf(false)
+    val scrollState = ScrollState(0)
 }
 
 fun saveButtonState(context: Context, state: List<ButtonState>) {
@@ -103,7 +114,7 @@ fun loadButtonState(context: Context): List<ButtonState> {
 }
 
 @Composable
-fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>) {
+fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>, editMode: MutableState<Boolean>) {
     val letterKeys = ('A'..'Z').toList().filter { key ->
         val keyCode = KeyEvent.KEYCODE_A + key.minus('A')
         keyCode !in usedKeys
@@ -123,8 +134,16 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>) {
     ).filter { keyCode -> keyCode !in usedKeys }
 
     var showDialog by remember { mutableStateOf(false) }
-    IconButton(onClick = { showDialog = true }) {
-        Icon(Icons.Default.Add, contentDescription = "Add Button")
+    IconButton(onClick = {
+        showDialog = true
+        editMode.value = true
+    }) {
+        Icon(
+            Icons.Default.Add,
+            contentDescription = "Add Button",
+            modifier = Modifier.size(36.dp), // Adjust the icon size here
+            tint = Color.Red // Change the color here
+        )
     }
 
     if (showDialog) {
@@ -172,8 +191,7 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>) {
                             }
                         }
                     }
-
-                    Divider(color = Color.White, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
+                    HorizontalDivider(color = Color.White, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                     Text(
                         text = "Select a Function Key",
                         style = MaterialTheme.typography.titleMedium,
@@ -206,8 +224,7 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>) {
                             }
                         }
                     }
-
-                    Divider(color = Color.White, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
+                    HorizontalDivider(color = Color.White, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                     Text(
                         text = "Select a Unique Key, The shift keys toggle.",
                         style = MaterialTheme.typography.titleMedium,
@@ -252,7 +269,10 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>) {
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
-                        onClick = { showDialog = false },
+                        onClick = {
+                            showDialog = false
+                            editMode.value = true
+                        },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text("Cancel")
@@ -272,7 +292,9 @@ fun DynamicButtonManager(
 ) {
     var showDialog by remember { mutableStateOf(false) }
 
-    Column {
+    Column(
+        modifier = Modifier.padding(start = 40.dp) // Add padding to space from the left
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = {
                 showDialog = !showDialog
@@ -303,11 +325,11 @@ fun DynamicButtonManager(
                     saveButtonState(context, updatedButtons)
                     onNewButtonAdded(newButtonState)
                     showDialog = false
+                    editMode.value = true
                 },
-                usedKeys = createdButtons.map { it.keyCode }
+                usedKeys = createdButtons.map { it.keyCode },
+                editMode = editMode
             )
         }
     }
 }
-
-

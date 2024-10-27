@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import org.libsdl.app.SDLActivity.onNativeKeyDown
 import org.libsdl.app.SDLActivity.onNativeKeyUp
 import org.openmw.ui.overlay.sendKeyEvent
+import org.openmw.utils.vibrate
 import kotlin.math.roundToInt
 
 @Composable
@@ -45,7 +47,8 @@ fun ResizableDraggableButton(
     id: Int,
     keyCode: Int,
     editMode: Boolean,
-    onDelete: () -> Unit // Add onDelete parameter
+    onDelete: () -> Unit,
+    customCursorView: CustomCursorView
 ) {
     var buttonState by remember {
         mutableStateOf(
@@ -54,8 +57,8 @@ fun ResizableDraggableButton(
         )
     }
     var buttonSize by remember { mutableStateOf(buttonState.size.dp) }
-    var offsetX by remember { mutableStateOf(buttonState.offsetX) }
-    var offsetY by remember { mutableStateOf(buttonState.offsetY) }
+    var offsetX by remember { mutableFloatStateOf(buttonState.offsetX) }
+    var offsetY by remember { mutableFloatStateOf(buttonState.offsetY) }
     var isDragging by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -125,7 +128,7 @@ fun ResizableDraggableButton(
                             if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
                                 if (isPressed) Color.Green else Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
                             } else {
-                                Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                                Color(alpha = 0.25f, red = 0f, green = 0f, blue = 0f)
                             }, shape = CircleShape
                         )
                         .clickable {
@@ -141,6 +144,32 @@ fun ResizableDraggableButton(
                                 onNativeKeyDown(keyCode)
                                 sendKeyEvent(keyCode)
                                 onNativeKeyUp(keyCode)
+                            }
+                            if (keyCode == KeyEvent.KEYCODE_A) {
+                                onNativeKeyDown(keyCode)
+                                sendKeyEvent(keyCode)
+                                onNativeKeyUp(keyCode)
+
+                                if (UIStateManager.isCustomCursorEnabled) {
+                                    customCursorView.performMouseClick()
+                                } else {
+                                    // Trigger KEYCODE_ENTER
+                                    onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
+                                    sendKeyEvent(KeyEvent.KEYCODE_ENTER)
+                                    onNativeKeyUp(KeyEvent.KEYCODE_ENTER)
+                                }
+
+                                if (UIStateManager.isVibrationEnabled) {
+                                    vibrate(context)
+                                }
+                            } else if (keyCode == KeyEvent.KEYCODE_E) {
+                                onNativeKeyDown(keyCode)
+                                sendKeyEvent(keyCode)
+                                onNativeKeyUp(keyCode)
+
+                                if (UIStateManager.isVibrationEnabled) {
+                                    vibrate(context)
+                                }
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -206,7 +235,6 @@ fun ResizableDraggableButton(
         }
     }
 }
-
 
 fun keyCodeToChar(keyCode: Int): String {
     return when (keyCode) {

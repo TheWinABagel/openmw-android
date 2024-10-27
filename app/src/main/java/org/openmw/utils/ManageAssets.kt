@@ -141,6 +141,22 @@ class UserManageAssets(val context: Context) {
             File(Constants.USER_OPENMW_CFG).writeText("# This is the user openmw.cfg. Feel free to modify it as you wish.\n")
         }
 
+        // Create default UI
+        val file = File("${Constants.USER_CONFIG}/UI.cfg")
+        if (!file.exists()) {
+            file.createNewFile()
+            file.appendText("""
+                ButtonID_1(60.0;2054.6936;18.942787;false;111)
+                ButtonID_2(60.0;1805.0613;700.42505;false;29)
+                ButtonID_3(60.0;1942.9843;561.5578;false;30)
+                ButtonID_4(60.0;1805.0613;422.69055;false;53)
+                ButtonID_5(60.0;1668.5325;561.5578;false;52)
+                ButtonID_6(60.0;1335.1458;770.3131;false;62)
+                ButtonID_7(60.0;750.73267;770.3131;false;66)
+                ButtonID_99(200.0;200.56776;281.6349;false;29)
+            """.trimIndent())
+        }
+
         // copy user settings file
         if (!File(Constants.SETTINGS_FILE).exists()) {
             Log.d("ManageAssets", "Copying resources to ${Constants.SETTINGS_FILE}")

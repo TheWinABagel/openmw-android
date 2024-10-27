@@ -1,39 +1,55 @@
 package org.openmw.ui.overlay
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.view.KeyEvent
+import android.view.View
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.test.internal.runner.junit4.statement.UiThreadStatement.runOnUiThread
 import kotlinx.coroutines.*
 import org.libsdl.app.SDLActivity.onNativeKeyDown
 import org.libsdl.app.SDLActivity.onNativeKeyUp
+import org.openmw.ui.controls.ButtonState
+import org.openmw.ui.controls.CustomCursorView
+import org.openmw.ui.controls.DynamicButtonManager
 import org.openmw.ui.controls.UIStateManager
 import org.openmw.utils.*
+import kotlin.math.roundToInt
 
 fun sendKeyEvent(keyCode: Int) {
     onNativeKeyDown(keyCode)
@@ -46,50 +62,48 @@ data class MemoryInfo(
     val usedMemory: String
 )
 
+@SuppressLint("RestrictedApi")
+fun toggleCustomCursor(customCursorView: CustomCursorView) {
+    runOnUiThread {
+        UIStateManager.isCustomCursorEnabled = !UIStateManager.isCustomCursorEnabled
+        customCursorView.visibility = if (UIStateManager.isCustomCursorEnabled) View.VISIBLE else View.GONE
+    }
+}
+
 @Composable
-fun OverlayUI(engineActivityContext: Context) {
+fun OverlayUI(
+    engineActivityContext: Context,
+    editMode: MutableState<Boolean>,
+    createdButtons: SnapshotStateList<ButtonState>,
+    customCursorView: CustomCursorView
+) {
     val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
-    var memoryInfoText by remember { mutableStateOf("") }
-    var batteryStatus by remember { mutableStateOf("") }
-    var logMessages by remember { mutableStateOf("") }
-    val scrollState = rememberScrollState()
-    var isMemoryInfoEnabled by remember { mutableStateOf(false) }
-    var isBatteryStatusEnabled by remember { mutableStateOf(false) }
-    var isLoggingEnabled by remember { mutableStateOf(false) }
-    val isUIHidden = UIStateManager.isUIHidden
-    var isRunEnabled = UIStateManager.isRunEnabled
-    var isF10Enabled by remember { mutableStateOf(false) } // New state for F10
-    var isBacktickEnabled by remember { mutableStateOf(false) }
-    var isF2Enabled by remember { mutableStateOf(false) }
-    var isF3Enabled by remember { mutableStateOf(false) }
+    val visible = UIStateManager.visible
+    val density = LocalDensity.current
 
     LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
-
         while (true) {
-            if (isMemoryInfoEnabled) {
+            if (UIStateManager.isMemoryInfoEnabled) {
                 val memoryInfo = getMemoryInfo(context)
-                memoryInfoText = "Total memory: ${memoryInfo.totalMemory}\n" +
+                UIStateManager.memoryInfoText = "Total memory: ${memoryInfo.totalMemory}\n" +
                         "Available memory: ${memoryInfo.availableMemory}\n" +
                         "Used memory: ${memoryInfo.usedMemory}"
             } else {
-                memoryInfoText = ""
+                UIStateManager.memoryInfoText = ""
             }
-
-            if (isBatteryStatusEnabled) {
-                batteryStatus = getBatteryStatus(context)
+            if (UIStateManager.isBatteryStatusEnabled) {
+                UIStateManager.batteryStatus = getBatteryStatus(context)
             } else {
-                batteryStatus = ""
+                UIStateManager.batteryStatus = ""
             }
-
-            if (isLoggingEnabled) {
-                scrollState.animateScrollTo(scrollState.maxValue)
-                logMessages = getMessages().joinToString("\n")
+            if (UIStateManager.isLoggingEnabled) {
+                UIStateManager.scrollState.animateScrollTo(UIStateManager.scrollState.maxValue)
+                UIStateManager.logMessages = getMessages().joinToString("\n")
             } else {
-                logMessages = ""
+                UIStateManager.logMessages = ""
             }
-
             delay(1000)
         }
     }
@@ -118,7 +132,8 @@ fun OverlayUI(engineActivityContext: Context) {
                                     }
                                 }
                             }
-                }, label = "size transform"
+                },
+                label = "size transform"
             ) { targetExpanded ->
                 if (targetExpanded) {
                     Column(
@@ -133,170 +148,94 @@ fun OverlayUI(engineActivityContext: Context) {
                                 .padding(5.dp)
                         ) {
                             item {
-                                Text(
-                                    text = "Show Memory Info",
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
-                                Switch(
-                                    checked = isMemoryInfoEnabled,
-                                    onCheckedChange = { isMemoryInfoEnabled = it }
-                                )
-                                Text(
-                                    text = "Show Battery Status",
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
-                                Switch(
-                                    checked = isBatteryStatusEnabled,
-                                    onCheckedChange = { isBatteryStatusEnabled = it }
-                                )
-                                Text(
-                                    text = "Show Logcat",
-                                    color = Color.White,
-                                    fontSize = 10.sp
-                                )
-                                Switch(
-                                    checked = isLoggingEnabled,
-                                    onCheckedChange = { isLoggingEnabled = it }
-                                )
-                                Text(text = "Enable Vibration", color = Color.White, fontSize = 10.sp)
-                                Switch(
-                                    checked = UIStateManager.isVibrationEnabled,
-                                    onCheckedChange = { UIStateManager.isVibrationEnabled = it })
-                                Text(text = "Hide UI", color = Color.White, fontSize = 10.sp)
-                                Switch(checked = isUIHidden, onCheckedChange = {
-                                    UIStateManager.isUIHidden = it
-                                    UIStateManager.visible = !it
-                                })
-                                // Run/Walk Toggle Switch
-                                Text(text = "Run / Walk", color = Color.White, fontSize = 10.sp)
-                                Switch(checked = isRunEnabled, onCheckedChange = {
-                                    UIStateManager.isRunEnabled = it
-                                    if (it) onNativeKeyDown(KeyEvent.KEYCODE_SHIFT_LEFT)
-                                    else onNativeKeyUp(KeyEvent.KEYCODE_SHIFT_LEFT)
-                                })
-                                // F10 Toggle Switch
-                                Text(text = "Press F10", color = Color.White, fontSize = 10.sp)
-                                Switch(checked = isF10Enabled, onCheckedChange = {
-                                    isF10Enabled = it
-                                    if (it) {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F10)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F10)
-                                    } else {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F10)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F10)
-                                    }
-                                })
-                                // Backtick Toggle Switch
-                                Text(text = "Console", color = Color.White, fontSize = 10.sp)
-                                Switch(checked = isBacktickEnabled, onCheckedChange = {
-                                    isBacktickEnabled = it
-                                    if (it) {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
-                                    } else {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_GRAVE)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_GRAVE)
-                                    }
-                                })
-                            }
-                        }
-                        LazyRow(
-                            modifier = Modifier
-                                .background(Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f))
-                                .padding(5.dp)
-                        ) {
-                            item {
-                                // Button for J (Journal)
-                                IconButton(onClick = {
-                                    onNativeKeyDown(KeyEvent.KEYCODE_J)
-                                    onNativeKeyUp(KeyEvent.KEYCODE_J)
-                                }) {
-                                    Text(text = "Journal", color = Color.White, fontSize = 10.sp)
+                                Box(
+                                    modifier = Modifier
+                                        .padding(4.dp)
+                                        .background(Color.Red, shape = RoundedCornerShape(8.dp))
+                                        .clickable { expanded = false }
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(text = "Close", color = Color.White, fontSize = 20.sp)
                                 }
-                                // Button for F5 (Quicksave)
-                                IconButton(onClick = {
-                                    onNativeKeyDown(KeyEvent.KEYCODE_F5)
-                                    onNativeKeyUp(KeyEvent.KEYCODE_F5)
-                                }) {
-                                    Text(text = "Quicksave", color = Color.White, fontSize = 10.sp)
+                                Spacer(modifier = Modifier.width(20.dp))
+                                ClickableBox("Hide UI", UIStateManager.isUIHidden) {
+                                    UIStateManager.isUIHidden = !UIStateManager.isUIHidden
+                                    UIStateManager.visible = !UIStateManager.isUIHidden
                                 }
-
-                                // Button for F6 (Quickload)
-                                IconButton(onClick = {
-                                    onNativeKeyDown(KeyEvent.KEYCODE_F6)
-                                    onNativeKeyUp(KeyEvent.KEYCODE_F6)
-                                }) {
-                                    Text(text = "Quickload", color = Color.White, fontSize = 10.sp)
+                                ClickableBox("Enable Vibration", UIStateManager.isVibrationEnabled) {
+                                    UIStateManager.isVibrationEnabled = !UIStateManager.isVibrationEnabled
                                 }
-
-                                // Button for F12 (Screenshot)
-                                IconButton(onClick = {
-                                    onNativeKeyDown(KeyEvent.KEYCODE_F12)
-                                    onNativeKeyUp(KeyEvent.KEYCODE_F12)
-                                }) {
-                                    Text(text = "Screenshot", color = Color.White, fontSize = 10.sp)
+                                ClickableBox("Show Memory Info", UIStateManager.isMemoryInfoEnabled) {
+                                    UIStateManager.isMemoryInfoEnabled = !UIStateManager.isMemoryInfoEnabled
                                 }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                // F2 Icon
-                                IconButton(onClick = {
-                                    isF2Enabled = !isF2Enabled
-                                    if (isF2Enabled) {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F2)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F2)
-                                    } else {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F2)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F2)
-                                    }
-                                }) {
-                                    Text(text = "F2", color = Color.White, fontSize = 20.sp)
+                                ClickableBox("Show Battery Status", UIStateManager.isBatteryStatusEnabled) {
+                                    UIStateManager.isBatteryStatusEnabled = !UIStateManager.isBatteryStatusEnabled
                                 }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                // F3 Icon
-                                IconButton(onClick = {
-                                    isF3Enabled = !isF3Enabled
-                                    if (isF3Enabled) {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F3)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F3)
-                                    } else {
-                                        onNativeKeyDown(KeyEvent.KEYCODE_F3)
-                                        onNativeKeyUp(KeyEvent.KEYCODE_F3)
-                                    }
-                                }) {
-                                    Text(text = "F3", color = Color.White, fontSize = 20.sp)
+                                ClickableBox("Show Logcat", UIStateManager.isLoggingEnabled) {
+                                    UIStateManager.isLoggingEnabled = !UIStateManager.isLoggingEnabled
                                 }
                             }
                         }
                     }
                 } else {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Settings")
-                    Button(
-                        onClick = {
-                            onNativeKeyDown(KeyEvent.KEYCODE_J)
-                            onNativeKeyUp(KeyEvent.KEYCODE_J)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .padding(start = 60.dp)
+                    Row(
+                        modifier = Modifier.align(Alignment.TopEnd)
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = "Sneak", tint = Color.Black)
+                        Icon(
+                            Icons.Rounded.Settings,
+                            contentDescription = "Settings",
+                            modifier = Modifier
+                                .padding(top = 10.dp, start = 20.dp)
+                                .size(30.dp),
+                            tint = Color.Black
+                        )
+
+                        AnimatedVisibility(
+                            visible = visible,
+                            enter = slideInVertically(
+                                initialOffsetY = { with(density) { -20.dp.roundToPx() } },
+                                animationSpec = tween(durationMillis = 1000)
+                            ) + expandVertically(
+                                expandFrom = Alignment.Bottom,
+                                animationSpec = tween(durationMillis = 1000)
+                            ) + fadeIn(
+                                initialAlpha = 0.3f,
+                                animationSpec = tween(durationMillis = 1000)
+                            ),
+                            exit = slideOutVertically(
+                                targetOffsetY = { with(density) { -20.dp.roundToPx() } },
+                                animationSpec = tween(durationMillis = 1000)
+                            ) + shrinkVertically(
+                                animationSpec = tween(durationMillis = 1000)
+                            ) + fadeOut(
+                                animationSpec = tween(durationMillis = 1000)
+                            )
+                        ) {
+                            DynamicButtonManager(
+                                context = engineActivityContext,
+                                onNewButtonAdded = { newButtonState ->
+                                    createdButtons.add(newButtonState)
+                                },
+                                editMode = editMode,
+                                createdButtons = createdButtons
+                            )
+                            IconButton(
+                                onClick = { toggleCustomCursor(customCursorView) },
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = Color.Transparent
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = "Toggle Custom Cursor",
+                                    modifier = Modifier.size(30.dp),
+                                    tint = Color.Black
+                                )
+                            }
+                        }
                     }
-                    Button(
-                        onClick = {
-                            onNativeKeyDown(KeyEvent.KEYCODE_T)
-                            onNativeKeyUp(KeyEvent.KEYCODE_T)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .padding(start = 20.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Rest", tint = Color.Black)
-                    }
+
                 }
             }
         }
@@ -308,45 +247,128 @@ fun OverlayUI(engineActivityContext: Context) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            if (isMemoryInfoEnabled) {
-                Text(
-                    text = memoryInfoText,
-                    color = Color.White,
-                    fontSize = 10.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            if (UIStateManager.isMemoryInfoEnabled) {
+                DraggableBox(editMode = editMode.value) { fontSize ->
+                    Text(
+                        text = UIStateManager.memoryInfoText,
+                        color = Color.White,
+                        fontSize = fontSize.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
-            if (isBatteryStatusEnabled) {
-                Text(
-                    text = batteryStatus,
-                    color = Color.White,
-                    fontSize = 10.sp
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+
+            if (UIStateManager.isBatteryStatusEnabled) {
+                DraggableBox(editMode = editMode.value) { fontSize ->
+                    Text(
+                        text = UIStateManager.batteryStatus,
+                        color = Color.White,
+                        fontSize = fontSize.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
-            if (isLoggingEnabled) {
-                Box(
-                    modifier = Modifier
-                        .width(400.dp)
-                        .height(200.dp)
-                        .padding(vertical = 35.dp)
-                        .verticalScroll(rememberScrollState()),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
-                    ) {
-                        // Your text content here
-                        Text(
-                            text = logMessages,
-                            color = Color.White,
-                            fontSize = 10.sp
-                        )
-                    }
+            if (UIStateManager.isLoggingEnabled) {
+                DraggableBox(editMode = editMode.value) { fontSize ->
+                    Text(
+                        text = UIStateManager.logMessages,
+                        color = Color.White,
+                        fontSize = fontSize.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
     }
 }
+
+@Composable
+fun DraggableBox(
+    editMode: Boolean,
+    content: @Composable (Float) -> Unit
+) {
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    var offsetY by remember { mutableFloatStateOf(0f) }
+    var boxWidth by remember { mutableFloatStateOf(200f) }
+    var boxHeight by remember { mutableFloatStateOf(100f) }
+    var isDragging by remember { mutableStateOf(false) }
+    var isResizing by remember { mutableStateOf(false) }
+    var fontSize by remember { mutableFloatStateOf(10f) }
+
+    Box(
+        modifier = Modifier
+            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+            .size(width = boxWidth.dp, height = boxHeight.dp)
+            .background(Color.Transparent)
+            .then(
+                if (editMode) {
+                    Modifier.pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { isDragging = true },
+                            onDrag = { change, dragAmount ->
+                                offsetX += dragAmount.x
+                                offsetY += dragAmount.y
+                            },
+                            onDragEnd = { isDragging = false }
+                        )
+                    }
+                } else Modifier
+            )
+            .border(2.dp, if (isDragging || isResizing) Color.Red else Color.Transparent)
+            .padding(8.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                content(fontSize)
+            }
+            if (editMode) {
+                Slider(
+                    value = fontSize,
+                    onValueChange = { fontSize = it },
+                    valueRange = 5f..30f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color.Red,
+                        activeTrackColor = Color(alpha = .9f, red = 0f, green = 0f, blue = 0f),
+                        inactiveTrackColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                )
+
+            }
+        }
+        if (editMode) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .offset { IntOffset(boxWidth.roundToInt() - 16.dp.toPx().roundToInt() - 16, boxHeight.roundToInt() - 16.dp.toPx().roundToInt() - 16) }
+                    .background(Color.Red)
+                    .pointerInput(Unit) {
+                        detectDragGestures(
+                            onDragStart = { isResizing = true },
+                            onDrag = { change, dragAmount ->
+                                boxWidth += dragAmount.x
+                                boxHeight += dragAmount.y
+                            },
+                            onDragEnd = { isResizing = false }
+                        )
+                    }
+                    .align(Alignment.BottomEnd)
+            )
+        }
+    }
+}
+
+@Composable
+fun ClickableBox(text: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .padding(4.dp)
+            .background(Color.White, shape = RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text, color = if (enabled) Color.Green else Color.Red, fontSize = 15.sp)
+    }
+}
+

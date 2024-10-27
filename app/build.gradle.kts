@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.androidx.runner)
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.profileinstaller)
+    implementation(libs.core.ktx)
     implementation(libs.reorderable)
     implementation(libs.relinker)
     implementation(libs.androidx.window)

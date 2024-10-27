@@ -9,7 +9,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
@@ -23,7 +26,9 @@ import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +53,7 @@ import org.openmw.dataStore
 import org.openmw.fragments.NavmeshActivity
 import org.openmw.fragments.containsMorrowindFolder
 import org.openmw.fragments.getGameFilesUri
+import org.openmw.ui.controls.UIStateManager
 import org.openmw.ui.theme.transparentBlack
 import org.openmw.utils.UnzipWithProgress
 import org.openmw.utils.UserManageAssets
@@ -60,6 +67,7 @@ import java.util.zip.ZipInputStream
 fun MyTopBar(context: Context) {
     var expanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
+    var showDialog2 by remember { mutableStateOf(false) }
     val settingsFile = File(SETTINGS_FILE)
     val destDirectory = LocalContext.current.getExternalFilesDir(null)?.absolutePath + "/Morrowind"
     var directoryExists by remember { mutableStateOf(File(destDirectory).exists()) }
@@ -107,32 +115,11 @@ fun MyTopBar(context: Context) {
                         }
                     },
                     onClick = {
-                        if (directoryExists) {
-                            // Code to delete the Morrowind folder
-                            File(destDirectory).deleteRecursively()
-                            directoryExists = false // Update the state
-                        } else {
-                            // Check if the zip file exists
-                            val zipFile = File(zipFilePath)
-                            if (!zipFile.exists()) {
-                                Toast.makeText(context, "Zip file does not exist.", Toast.LENGTH_LONG).show()
-                            } else {
-                                // Check if the zip file contains the Morrowind folder before setting showUnzipProgress
-                                if (containsMorrowindFolder(zipFilePath)) {
-                                    showUnzipProgress = true
-                                } else {
-                                    Toast.makeText(context, "Zip file does not contain a Morrowind folder.", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
+                        expanded = false
+                        // Directly set the showDialog2 state
+                        showDialog2 = true
                     }
                 )
-                if (showUnzipProgress) {
-                    UnzipWithProgress {
-                        showUnzipProgress = false
-                        directoryExists = true // Update the state after unzipping
-                    }
-                }
                 DropdownMenuItem(
                     text = { Text("Build Navmesh", color = Color.White) },
                     onClick = {
@@ -151,6 +138,21 @@ fun MyTopBar(context: Context) {
                     onClick = {
                         showDialog = true
                     }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Enable Logcat", color = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Switch(
+                                checked = UIStateManager.isLogcatEnabled,
+                                onCheckedChange = {
+                                    UIStateManager.isLogcatEnabled = it
+                                }
+                            )
+                        }
+                    },
+                    onClick = { /* Handle click if necessary */ }
                 )
                 if (showDialog) {
                     AlertDialog(
@@ -182,6 +184,56 @@ fun MyTopBar(context: Context) {
                             }
                         }
                     )
+                }
+            }
+            if (showDialog2) {
+                AlertDialog(
+                    onDismissRequest = { showDialog2 = false },
+                    title = { Text("Confirm Action") },
+                    text = {
+                        if (directoryExists) {
+                            Text("Are you sure you want to uninstall Morrowind files?")
+                        } else {
+                            Text("Are you sure you want to install Morrowind files? \nThis extracts from a Morrowind.zip in the download folder into the launcher assigned folder. \n\nOnly needed on strict devices.")
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDialog2 = false
+                                if (directoryExists) {
+                                    File(destDirectory).deleteRecursively()
+                                    directoryExists = false // Update the state
+                                } else {
+                                    val zipFile = File(zipFilePath)
+                                    if (!zipFile.exists()) {
+                                        Toast.makeText(context, "Zip file does not exist.", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        if (containsMorrowindFolder(zipFilePath)) {
+                                            showUnzipProgress = true
+                                        } else {
+                                            Toast.makeText(context, "Zip file does not contain a Morrowind folder.", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            }
+                        ) {
+                            Text("Yes")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = { showDialog2 = false }
+                        ) {
+                            Text("No")
+                        }
+                    }
+                )
+                if (showUnzipProgress) {
+                    UnzipWithProgress {
+                        showUnzipProgress = false
+                        directoryExists = true // Update the state after unzipping
+                    }
                 }
             }
         },

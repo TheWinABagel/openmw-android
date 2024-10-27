@@ -12,12 +12,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import org.openmw.navigation.MyFloatingActionButton
 import org.openmw.navigation.MyTopBar
+import org.openmw.utils.BouncingBackground
 import org.openmw.utils.ExpandableBox
 import org.openmw.utils.ReadAndDisplayIniValues
 import org.openmw.utils.exportCrashAndLogcatFiles
@@ -66,7 +67,7 @@ fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
             BouncingBackground()
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .wrapContentHeight()
                     .padding(top = 40.dp, bottom = 80.dp),
             ) {
                 Column(

@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.map
 import org.openmw.fragments.SettingsFragment
 import org.openmw.navigation.MyFloatingActionButton
 import org.openmw.navigation.MyTopBar
+import org.openmw.utils.BouncingBackground
 import org.openmw.utils.ModValue
 import org.openmw.utils.ModValuesList
 
