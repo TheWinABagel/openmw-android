@@ -61,7 +61,6 @@ fun ResizableDraggableButton(
     var offsetY by remember { mutableFloatStateOf(buttonState.offsetY) }
     var isDragging by remember { mutableStateOf(false) }
     var isPressed by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val density = LocalDensity.current
     val visible = UIStateManager.visible
     val saveState = {
@@ -145,7 +144,7 @@ fun ResizableDraggableButton(
                                 sendKeyEvent(keyCode)
                                 onNativeKeyUp(keyCode)
                             }
-                            if (keyCode == KeyEvent.KEYCODE_A) {
+                            if (keyCode == KeyEvent.KEYCODE_Z) {
                                 onNativeKeyDown(keyCode)
                                 sendKeyEvent(keyCode)
                                 onNativeKeyUp(keyCode)
@@ -180,7 +179,6 @@ fun ResizableDraggableButton(
                         Text(text = keyCodeToChar(keyCode), color = Color.White)
                     }
                 }
-
 
                 if (editMode) {
                     // + button

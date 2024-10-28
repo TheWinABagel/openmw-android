@@ -72,12 +72,11 @@ fun toggleCustomCursor(customCursorView: CustomCursorView) {
 
 @Composable
 fun OverlayUI(
-    engineActivityContext: Context,
+    context: Context,
     editMode: MutableState<Boolean>,
     createdButtons: SnapshotStateList<ButtonState>,
     customCursorView: CustomCursorView
 ) {
-    val context = LocalContext.current
     var expanded by remember { mutableStateOf(false) }
     val visible = UIStateManager.visible
     val density = LocalDensity.current
@@ -213,7 +212,7 @@ fun OverlayUI(
                             )
                         ) {
                             DynamicButtonManager(
-                                context = engineActivityContext,
+                                context = context,
                                 onNewButtonAdded = { newButtonState ->
                                     createdButtons.add(newButtonState)
                                 },
@@ -371,4 +370,3 @@ fun ClickableBox(text: String, enabled: Boolean, onClick: () -> Unit) {
         Text(text = text, color = if (enabled) Color.Green else Color.Red, fontSize = 15.sp)
     }
 }
-

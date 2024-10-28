@@ -28,7 +28,6 @@ import org.openmw.utils.PermissionHelper
 import org.openmw.utils.getScreenWidthAndHeight
 import org.openmw.utils.readModValues
 import org.openmw.utils.updateResolutionInConfig
-import java.io.File
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "game_files_prefs")
 

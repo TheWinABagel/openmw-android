@@ -147,7 +147,7 @@ class UserManageAssets(val context: Context) {
             file.createNewFile()
             file.appendText("""
                 ButtonID_1(60.0;2054.6936;18.942787;false;111)
-                ButtonID_2(60.0;1805.0613;700.42505;false;29)
+                ButtonID_2(60.0;1805.0613;700.42505;false;54)
                 ButtonID_3(60.0;1942.9843;561.5578;false;30)
                 ButtonID_4(60.0;1805.0613;422.69055;false;53)
                 ButtonID_5(60.0;1668.5325;561.5578;false;52)

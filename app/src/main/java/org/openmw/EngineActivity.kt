@@ -1,6 +1,7 @@
 package org.openmw
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -13,10 +14,20 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -29,7 +40,9 @@ import org.openmw.ui.controls.UIStateManager
 import org.openmw.ui.controls.loadButtonState
 import org.openmw.ui.controls.saveButtonState
 import org.openmw.ui.overlay.OverlayUI
+import org.openmw.ui.overlay.sendKeyEvent
 import org.openmw.utils.enableLogcat
+import kotlin.math.roundToInt
 
 class EngineActivity : SDLActivity() {
     private lateinit var customCursorView: CustomCursorView
@@ -75,7 +88,7 @@ class EngineActivity : SDLActivity() {
 
         // Add SDL view programmatically
         val sdlContainer = findViewById<FrameLayout>(R.id.sdl_container)
-        sdlContainer.addView(sdlView)
+        sdlContainer.addView(sdlView, 0)
 
         // Remove sdlView from its parent if necessary
         (sdlView.parent as? ViewGroup)?.removeView(sdlView)
@@ -99,10 +112,11 @@ class EngineActivity : SDLActivity() {
         // Setup Compose overlay for buttons
         val composeViewUI = findViewById<ComposeView>(R.id.compose_overlayUI)
         (composeViewUI.parent as? ViewGroup)?.removeView(composeViewUI)
-        sdlContainer.addView(composeViewUI)
+        sdlContainer.addView(composeViewUI, 2)
+
         composeViewUI.setContent {
             OverlayUI(
-                engineActivityContext = this,
+                context = this,
                 editMode = editMode,
                 createdButtons = createdButtons,
                 customCursorView = customCursorView
@@ -117,26 +131,71 @@ class EngineActivity : SDLActivity() {
                     customCursorView = customCursorView
                 )
             }
-            thumbstick?.let {
-                ResizableDraggableThumbstick(
-                    context = this,
-                    id = 99,
-                    keyCode = it.keyCode,
-                    editMode = editMode.value,
-                    onWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W) },
-                    onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
-                    onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
-                    onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
-                    onRelease = {
-                        onNativeKeyUp(KeyEvent.KEYCODE_W)
-                        onNativeKeyUp(KeyEvent.KEYCODE_A)
-                        onNativeKeyUp(KeyEvent.KEYCODE_S)
-                        onNativeKeyUp(KeyEvent.KEYCODE_D)
-                    }
-                )
-            }
-            //HiddenMenu() // RadialMenu.kt
         }
+
+        thumbstick?.let {
+            val thumbstickView = ComposeView(this).apply {
+                id = View.generateViewId() // Ensure unique ID
+                var layoutParams = FrameLayout.LayoutParams(
+                    300.dpToPx(this@EngineActivity), // Width: 250dp in pixels
+                    300.dpToPx(this@EngineActivity)  // Height: 250dp in pixels
+                ).apply {
+                    leftMargin = UIStateManager.newX.roundToInt()
+                    topMargin = UIStateManager.newY.roundToInt()
+                }
+                this.layoutParams = layoutParams
+
+                setContent {
+                    val offsetX = remember { mutableFloatStateOf(0f) }
+                    val offsetY = remember { mutableFloatStateOf(0f) }
+
+                    Box(
+                        modifier = Modifier
+                            .size(300.dp, 300.dp) // Fixed size for thumbstick
+                            .background(Color.Transparent)
+                            .then(
+                                if (editMode.value) {
+                                    Modifier.pointerInput(Unit) {
+                                        detectDragGestures { change, dragAmount ->
+                                            offsetX.value += dragAmount.x
+                                            offsetY.value += dragAmount.y
+                                            // Update layout parameters dynamically
+                                            layoutParams.leftMargin = offsetX.value.roundToInt()
+                                            layoutParams.topMargin = offsetY.value.roundToInt()
+                                            this@apply.layoutParams = layoutParams
+
+                                            // Log the updated margins
+                                            Log.d("Thumbstick", "Left Margin: ${layoutParams.leftMargin}, Top Margin: ${layoutParams.topMargin}")
+                                        }
+                                    }
+                                } else Modifier
+                            )
+                    ) {
+                        ResizableDraggableThumbstick(
+                            context = this@EngineActivity,
+                            id = 99,
+                            keyCode = it.keyCode,
+                            editMode = editMode.value,
+                            onWClick = { onNativeKeyDown(KeyEvent.KEYCODE_W) },
+                            onAClick = { onNativeKeyDown(KeyEvent.KEYCODE_A) },
+                            onSClick = { onNativeKeyDown(KeyEvent.KEYCODE_S) },
+                            onDClick = { onNativeKeyDown(KeyEvent.KEYCODE_D) },
+                            onRelease = {
+                                onNativeKeyUp(KeyEvent.KEYCODE_W)
+                                onNativeKeyUp(KeyEvent.KEYCODE_A)
+                                onNativeKeyUp(KeyEvent.KEYCODE_S)
+                                onNativeKeyUp(KeyEvent.KEYCODE_D)
+                            }
+                        )
+                    }
+                }
+            }
+            sdlContainer.addView(thumbstickView, 1)
+        }
+    }
+
+    fun Int.dpToPx(context: Context): Int {
+        return (this * context.resources.displayMetrics.density).toInt()
     }
 
     private fun setupInitialCursorState() {

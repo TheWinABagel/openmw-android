@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.libsdl.app.SDLActivity.onNativeKeyUp
+import org.openmw.ui.controls.UIStateManager.isThumbDragging
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -64,9 +66,8 @@ fun ResizableDraggableThumbstick(
         ))
     }
     var buttonSize by remember { mutableStateOf(thumbstickState.size.dp) }
-    var offsetX by remember { mutableStateOf(thumbstickState.offsetX) }
-    var offsetY by remember { mutableStateOf(thumbstickState.offsetY) }
-    var isDragging by remember { mutableStateOf(false) }
+    var offsetX by remember { mutableFloatStateOf(thumbstickState.offsetX) }
+    var offsetY by remember { mutableFloatStateOf(thumbstickState.offsetY) }
     val visible = UIStateManager.visible
     val density = LocalDensity.current
     val radiusPx = with(density) { (buttonSize / 2).toPx() }
@@ -109,24 +110,7 @@ fun ResizableDraggableThumbstick(
                     .size(buttonSize)
                     .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                     .background(Color.Transparent)
-                    .then(
-                        if (editMode) {
-                            Modifier.pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { isDragging = true },
-                                    onDrag = { change, dragAmount ->
-                                        offsetX += dragAmount.x
-                                        offsetY += dragAmount.y
-                                    },
-                                    onDragEnd = {
-                                        isDragging = false
-                                        saveState()
-                                    }
-                                )
-                            }
-                        } else Modifier
-                    )
-                    .border(2.dp, if (isDragging) Color.Red else Color.Black, shape = CircleShape)
+                    .border(2.dp, if (isThumbDragging) Color.Red else Color.Black, shape = CircleShape)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,

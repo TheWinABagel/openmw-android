@@ -1,12 +1,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sdl_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-
-    <!-- SDL SurfaceView placeholder -->
-    <FrameLayout
-        android:id="@+id/sdl_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
 
         <!-- Custom Cursor View -->
         <org.openmw.ui.controls.CustomCursorView
@@ -22,5 +17,5 @@
             android:layout_height="wrap_content"
             android:layout_gravity="top|start"
             android:padding="16dp" />
-    </FrameLayout>
+
 </FrameLayout>

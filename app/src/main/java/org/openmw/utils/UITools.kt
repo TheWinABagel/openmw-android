@@ -129,15 +129,16 @@ fun enableLogcat() {
     processBuilder.start()
 }
 
-
 fun updateResolutionInConfig(width: Int, height: Int) {
     val file = File(Constants.SETTINGS_FILE)
     val lines = file.readLines().map { line ->
         when {
             // These are incorrect, I swapped $width and $height so the resolution would be correct. The issue
-            // Starts when you grab the device specs in portrait then the game jum,ps to landscape.
-            line.startsWith("resolution y =") -> "resolution y = $width"
-            line.startsWith("resolution x =") -> "resolution x = $height"
+            // Starts when you grab the device specs in portrait then the game jumps to landscape.
+            line.startsWith("# Width of screen") -> "# Width recommended for your device = $height"
+            line.startsWith("# Height of screen") -> "# Height recommended for your device = $width"
+            line.startsWith("resolution y = 0") -> "resolution y = $width"
+            line.startsWith("resolution x = 0") -> "resolution x = $height"
             else -> line
         }
     }
