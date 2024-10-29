@@ -156,20 +156,30 @@ class EngineActivity : SDLActivity() {
                             .then(
                                 if (editMode.value) {
                                     Modifier.pointerInput(Unit) {
-                                        detectDragGestures { change, dragAmount ->
-                                            offsetX.value += dragAmount.x
-                                            offsetY.value += dragAmount.y
-                                            // Update layout parameters dynamically
-                                            layoutParams.leftMargin = offsetX.value.roundToInt()
-                                            layoutParams.topMargin = offsetY.value.roundToInt()
-                                            this@apply.layoutParams = layoutParams
+                                        detectDragGestures(
+                                            onDragStart = {
+                                                isThumbDragging = true
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                offsetX.value += dragAmount.x
+                                                offsetY.value += dragAmount.y
+                                                // Update layout parameters dynamically
+                                                layoutParams.leftMargin = offsetX.value.roundToInt()
+                                                layoutParams.topMargin = offsetY.value.roundToInt()
+                                                this@apply.layoutParams = layoutParams
+                                            },
+                                            onDragEnd = {
+                                                isThumbDragging = false
 
-                                            // Log the updated margins
-                                            Log.d("Thumbstick", "Left Margin: ${layoutParams.leftMargin}, Top Margin: ${layoutParams.topMargin}")
-                                        }
+                                            },
+                                            onDragCancel = {
+                                                isThumbDragging = false
+                                            }
+                                        )
                                     }
-                                } else Modifier
-                            )
+                            } else Modifier
+                        )
+
                     ) {
                         ResizableDraggableThumbstick(
                             context = this@EngineActivity,
