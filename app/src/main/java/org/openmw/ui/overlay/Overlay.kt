@@ -3,6 +3,9 @@ package org.openmw.ui.overlay
 import android.annotation.SuppressLint
 import android.content.Context
 import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
+import android.widget.SeekBar
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
@@ -34,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -42,19 +44,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.test.internal.runner.junit4.statement.UiThreadStatement.runOnUiThread
 import kotlinx.coroutines.*
-import org.libsdl.app.SDLActivity.onNativeKeyDown
-import org.libsdl.app.SDLActivity.onNativeKeyUp
 import org.openmw.ui.controls.ButtonState
 import org.openmw.ui.controls.CustomCursorView
 import org.openmw.ui.controls.DynamicButtonManager
 import org.openmw.ui.controls.UIStateManager
+import org.openmw.ui.controls.addZoomAndMoveButtons
 import org.openmw.utils.*
 import kotlin.math.roundToInt
-
-fun sendKeyEvent(keyCode: Int) {
-    onNativeKeyDown(keyCode)
-    onNativeKeyUp(keyCode)
-}
 
 data class MemoryInfo(
     val totalMemory: String,
@@ -70,9 +66,12 @@ fun toggleCustomCursor(customCursorView: CustomCursorView) {
     }
 }
 
+
 @Composable
 fun OverlayUI(
     context: Context,
+    sdlView: View,
+    sdlContainer: FrameLayout,
     editMode: MutableState<Boolean>,
     createdButtons: SnapshotStateList<ButtonState>,
     customCursorView: CustomCursorView
@@ -80,6 +79,8 @@ fun OverlayUI(
     var expanded by remember { mutableStateOf(false) }
     val visible = UIStateManager.visible
     val density = LocalDensity.current
+    var isCustomCursorEnabled by remember { mutableStateOf(false) }
+    var zoomButtonsAdded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         getMessages() // Ensure logcat is enabled
@@ -219,8 +220,17 @@ fun OverlayUI(
                                 editMode = editMode,
                                 createdButtons = createdButtons
                             )
+                            // IconButton to toggle zoom and move buttons
                             IconButton(
-                                onClick = { toggleCustomCursor(customCursorView) },
+                                onClick = {
+                                    isCustomCursorEnabled = !isCustomCursorEnabled
+                                    toggleCustomCursor(customCursorView)
+                                    if (!zoomButtonsAdded) {
+                                        addZoomAndMoveButtons(context, sdlView, sdlContainer)
+                                        zoomButtonsAdded = true
+                                    }
+                                    updateZoomButtonsVisibility(sdlContainer, isCustomCursorEnabled)
+                                },
                                 colors = IconButtonDefaults.iconButtonColors(
                                     containerColor = Color.Transparent
                                 )
@@ -370,3 +380,14 @@ fun ClickableBox(text: String, enabled: Boolean, onClick: () -> Unit) {
         Text(text = text, color = if (enabled) Color.Green else Color.Red, fontSize = 15.sp)
     }
 }
+
+fun updateZoomButtonsVisibility(sdlContainer: FrameLayout, visible: Boolean) {
+    val visibility = if (visible) View.VISIBLE else View.GONE
+    for (i in 0 until sdlContainer.childCount) {
+        val child = sdlContainer.getChildAt(i)
+        if (child is Button || child is SeekBar) { // Assuming only the buttons and sliders are added for zoom and move
+            child.visibility = visibility
+        }
+    }
+}
+

@@ -8,9 +8,11 @@ import android.os.Process
 import android.system.ErrnoException
 import android.system.Os
 import android.util.Log
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.FrameLayout
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
@@ -37,10 +39,10 @@ import org.openmw.ui.controls.CustomCursorView
 import org.openmw.ui.controls.ResizableDraggableButton
 import org.openmw.ui.controls.ResizableDraggableThumbstick
 import org.openmw.ui.controls.UIStateManager
+import org.openmw.ui.controls.UIStateManager.isThumbDragging
 import org.openmw.ui.controls.loadButtonState
 import org.openmw.ui.controls.saveButtonState
 import org.openmw.ui.overlay.OverlayUI
-import org.openmw.ui.overlay.sendKeyEvent
 import org.openmw.utils.enableLogcat
 import kotlin.math.roundToInt
 
@@ -119,6 +121,8 @@ class EngineActivity : SDLActivity() {
                 context = this,
                 editMode = editMode,
                 createdButtons = createdButtons,
+                sdlView = sdlView,
+                sdlContainer = sdlContainer,
                 customCursorView = customCursorView
             )
             createdButtons.forEach { button ->
@@ -156,20 +160,30 @@ class EngineActivity : SDLActivity() {
                             .then(
                                 if (editMode.value) {
                                     Modifier.pointerInput(Unit) {
-                                        detectDragGestures { change, dragAmount ->
-                                            offsetX.value += dragAmount.x
-                                            offsetY.value += dragAmount.y
-                                            // Update layout parameters dynamically
-                                            layoutParams.leftMargin = offsetX.value.roundToInt()
-                                            layoutParams.topMargin = offsetY.value.roundToInt()
-                                            this@apply.layoutParams = layoutParams
+                                        detectDragGestures(
+                                            onDragStart = {
+                                                isThumbDragging = true
+                                            },
+                                            onDrag = { change, dragAmount ->
+                                                offsetX.value += dragAmount.x
+                                                offsetY.value += dragAmount.y
+                                                // Update layout parameters dynamically
+                                                layoutParams.leftMargin = offsetX.value.roundToInt()
+                                                layoutParams.topMargin = offsetY.value.roundToInt()
+                                                this@apply.layoutParams = layoutParams
+                                            },
+                                            onDragEnd = {
+                                                isThumbDragging = false
 
-                                            // Log the updated margins
-                                            Log.d("Thumbstick", "Left Margin: ${layoutParams.leftMargin}, Top Margin: ${layoutParams.topMargin}")
-                                        }
+                                            },
+                                            onDragCancel = {
+                                                isThumbDragging = false
+                                            }
+                                        )
                                     }
                                 } else Modifier
                             )
+
                     ) {
                         ResizableDraggableThumbstick(
                             context = this@EngineActivity,

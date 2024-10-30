@@ -22,7 +22,6 @@ class CustomCursorView(context: Context, attrs: AttributeSet?) : View(context, a
     private var isCursorEnabled = true
 
     private val cursorIcon = ContextCompat.getDrawable(context, R.drawable.pointer_icon)!!
-
     private fun readSettingsFile(): Triple<Int, Int, Float> {
         val settingsFile = File(Constants.SETTINGS_FILE)
         var resolutionX = 0

@@ -14,6 +14,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -30,14 +31,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.libsdl.app.SDLActivity.onNativeKeyDown
 import org.libsdl.app.SDLActivity.onNativeKeyUp
-import org.openmw.ui.overlay.sendKeyEvent
 import org.openmw.utils.vibrate
 import kotlin.math.roundToInt
 
@@ -130,46 +129,44 @@ fun ResizableDraggableButton(
                                 Color(alpha = 0.25f, red = 0f, green = 0f, blue = 0f)
                             }, shape = CircleShape
                         )
-                        .clickable {
-                            if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
-                                isPressed = !isPressed
-                                if (isPressed) {
-                                    onNativeKeyDown(keyCode)
-                                    sendKeyEvent(keyCode)
-                                } else {
-                                    onNativeKeyUp(keyCode)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+                                        isPressed = !isPressed
+                                        if (isPressed) {
+                                            onNativeKeyDown(keyCode)
+                                        } else {
+                                            onNativeKeyUp(keyCode)
+                                        }
+                                    } else {
+                                        onNativeKeyDown(keyCode)
+                                        onNativeKeyUp(keyCode)
+                                    }
+                                    if (keyCode == KeyEvent.KEYCODE_Z) {
+                                        onNativeKeyDown(keyCode)
+                                        if (UIStateManager.isCustomCursorEnabled) {
+                                            customCursorView.performMouseClick()
+                                        } else {
+                                            onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
+                                        }
+                                        if (UIStateManager.isVibrationEnabled) {
+                                            vibrate(context)
+                                        }
+                                    } else if (keyCode == KeyEvent.KEYCODE_E) {
+                                        onNativeKeyDown(keyCode)
+                                        if (UIStateManager.isVibrationEnabled) {
+                                            vibrate(context)
+                                        }
+                                    }
+                                    awaitRelease()
+                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+                                        // Do nothing for SHIFT keys as they toggle
+                                    } else {
+                                        onNativeKeyUp(keyCode)
+                                    }
                                 }
-                            } else {
-                                onNativeKeyDown(keyCode)
-                                sendKeyEvent(keyCode)
-                                onNativeKeyUp(keyCode)
-                            }
-                            if (keyCode == KeyEvent.KEYCODE_Z) {
-                                onNativeKeyDown(keyCode)
-                                sendKeyEvent(keyCode)
-                                onNativeKeyUp(keyCode)
-
-                                if (UIStateManager.isCustomCursorEnabled) {
-                                    customCursorView.performMouseClick()
-                                } else {
-                                    // Trigger KEYCODE_ENTER
-                                    onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
-                                    sendKeyEvent(KeyEvent.KEYCODE_ENTER)
-                                    onNativeKeyUp(KeyEvent.KEYCODE_ENTER)
-                                }
-
-                                if (UIStateManager.isVibrationEnabled) {
-                                    vibrate(context)
-                                }
-                            } else if (keyCode == KeyEvent.KEYCODE_E) {
-                                onNativeKeyDown(keyCode)
-                                sendKeyEvent(keyCode)
-                                onNativeKeyUp(keyCode)
-
-                                if (UIStateManager.isVibrationEnabled) {
-                                    vibrate(context)
-                                }
-                            }
+                            )
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -233,6 +230,7 @@ fun ResizableDraggableButton(
         }
     }
 }
+
 
 fun keyCodeToChar(keyCode: Int): String {
     return when (keyCode) {

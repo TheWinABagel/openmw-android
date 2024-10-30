@@ -69,8 +69,8 @@ object UIStateManager {
     val scrollState = ScrollState(0)
     var isThumbDragging by mutableStateOf(false)
 
-    var newX by mutableStateOf(0f) // New shared variable
-    var newY by mutableStateOf(0f) // New shared variable
+    var newX by mutableFloatStateOf(0f) // New shared variable
+    var newY by mutableFloatStateOf(0f) // New shared variable
 }
 
 fun saveButtonState(context: Context, state: List<ButtonState>) {

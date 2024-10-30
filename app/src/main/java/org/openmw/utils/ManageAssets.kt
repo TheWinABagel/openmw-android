@@ -149,7 +149,7 @@ class UserManageAssets(val context: Context) {
                 ButtonID_1(60.0;2054.6936;18.942787;false;111)
                 ButtonID_2(60.0;1805.0613;700.42505;false;54)
                 ButtonID_3(60.0;1942.9843;561.5578;false;30)
-                ButtonID_4(60.0;1805.0613;422.69055;false;53)
+                ButtonID_4(60.0;1805.0613;422.69055;false;33)
                 ButtonID_5(60.0;1668.5325;561.5578;false;52)
                 ButtonID_6(60.0;1335.1458;770.3131;false;62)
                 ButtonID_7(60.0;750.73267;770.3131;false;66)
