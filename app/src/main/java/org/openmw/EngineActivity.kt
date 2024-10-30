@@ -181,9 +181,9 @@ class EngineActivity : SDLActivity() {
                                             }
                                         )
                                     }
+
                                 } else Modifier
                             )
-
                     ) {
                         ResizableDraggableThumbstick(
                             context = this@EngineActivity,
