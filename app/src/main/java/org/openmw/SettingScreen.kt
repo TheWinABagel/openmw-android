@@ -47,6 +47,7 @@ import org.openmw.utils.BouncingBackground
 import org.openmw.utils.ExpandableBox
 import org.openmw.utils.ReadAndDisplayIniValues
 import org.openmw.utils.exportCrashAndLogcatFiles
+import org.openmw.utils.exportFile
 import org.openmw.utils.exportFilesAndDirectories
 import org.openmw.utils.importFilesAndDirectories
 import org.openmw.utils.importSpecificFile
@@ -58,6 +59,7 @@ import java.io.File
 fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
     val transparentBlack = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
     var showDialog = remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
 
     Scaffold(
         topBar = {
@@ -67,12 +69,14 @@ fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
             BouncingBackground()
             Box(
                 modifier = Modifier
+                    .verticalScroll(scrollState)
                     .wrapContentHeight()
                     .padding(top = 40.dp, bottom = 80.dp),
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(top = 40.dp, bottom = 60.dp),
+                        .padding(top = 40.dp, bottom = 60.dp)
+                        .wrapContentHeight(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -118,6 +122,30 @@ fun SettingScreen(context: Context, navigateToHome: () -> Unit) {
                         )
                     ) {
                         Text(text = "Import settings.cfg", color = Color.White)
+                    }
+                    Button(
+                        onClick = { importSpecificFile(context, "UI.cfg") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                        )
+                    ) {
+                        Text(text = "Import Controls Layout", color = Color.White)
+                    }
+                    Button(
+                        onClick = { exportFile(context, "UI.cfg") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        shape = RectangleShape,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                        )
+                    ) {
+                        Text(text = "Export Controls Layout", color = Color.White)
                     }
 
                     Button(

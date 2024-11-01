@@ -34,13 +34,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.libsdl.app.SDLActivity.onNativeKeyUp
 import org.openmw.ui.controls.UIStateManager.isThumbDragging
 import kotlin.math.abs
 import kotlin.math.hypot
-import kotlin.math.roundToInt
+import android.util.Log
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -55,29 +54,29 @@ fun ResizableDraggableThumbstick(
     onDClick: () -> Unit,
     onRelease: () -> Unit
 ) {
-    var thumbstickState by remember {
-        mutableStateOf(loadButtonState(context).find { it.id == id } ?: ButtonState(
-            id,
-            200f,
-            0f,
-            0f,
-            false,
-            keyCode
-        ))
-    }
-    var buttonSize by remember { mutableStateOf(thumbstickState.size.dp) }
-    var offsetX by remember { mutableFloatStateOf(thumbstickState.offsetX) }
-    var offsetY by remember { mutableFloatStateOf(thumbstickState.offsetY) }
+    val buttonState = UIStateManager.buttonStates.getOrPut(id) {
+        mutableStateOf(ButtonState(id, 100f, 0f, 0f, false, keyCode))
+    }.value
+
+    val buttonSize = remember { mutableStateOf(buttonState.size.dp) }
+    val offsetX = remember { mutableFloatStateOf(buttonState.offsetX) }
+    val offsetY = remember { mutableFloatStateOf(buttonState.offsetY) }
     val visible = UIStateManager.visible
     val density = LocalDensity.current
-    val radiusPx = with(density) { (buttonSize / 2).toPx() }
+    val radiusPx = with(density) { (buttonSize.value / 2).toPx() }
     val deadZone = 0.2f * radiusPx
     var touchState by remember { mutableStateOf(Offset(0f, 0f)) }
+
     val saveState = {
-        val updatedState = ButtonState(id, buttonSize.value, offsetX, offsetY, false, keyCode)
-        val allStates = loadButtonState(context).filter { it.id != id } + updatedState
-        saveButtonState(context, allStates)
+        val updatedState = buttonState.copy(
+            size = buttonSize.value.value,
+            offsetX = offsetX.floatValue,
+            offsetY = offsetY.floatValue
+        )
+        UIStateManager.buttonStates[id]?.value = updatedState
+        saveButtonState(context, UIStateManager.buttonStates.values.map { it.value })
     }
+
     AnimatedVisibility(
         visible = visible,
         enter = slideInVertically(
@@ -107,10 +106,10 @@ fun ResizableDraggableThumbstick(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(buttonSize)
-                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                    .size(buttonSize.value)
                     .background(Color.Transparent)
                     .border(2.dp, if (isThumbDragging) Color.Red else Color.Black, shape = CircleShape)
+                    .align(Alignment.Center)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -193,7 +192,7 @@ fun ResizableDraggableThumbstick(
                             .size(30.dp)
                             .background(Color.Black, shape = CircleShape)
                             .clickable {
-                                buttonSize += 20.dp
+                                buttonSize.value += 20.dp
                                 saveState()
                             }
                             .border(2.dp, Color.White, shape = CircleShape),
@@ -201,16 +200,14 @@ fun ResizableDraggableThumbstick(
                     ) {
                         Text(text = "+", color = Color.White, fontWeight = FontWeight.Bold)
                     }
-
-                    // - button
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .size(30.dp)
                             .background(Color.Black, shape = CircleShape)
                             .clickable {
-                                buttonSize -= 20.dp
-                                if (buttonSize < 50.dp) buttonSize = 50.dp
+                                buttonSize.value -= 20.dp
+                                if (buttonSize.value < 50.dp) buttonSize.value = 50.dp
                                 saveState()
                             }
                             .border(2.dp, Color.White, shape = CircleShape),

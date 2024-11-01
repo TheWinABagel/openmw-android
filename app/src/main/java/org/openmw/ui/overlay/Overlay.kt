@@ -66,7 +66,6 @@ fun toggleCustomCursor(customCursorView: CustomCursorView) {
     }
 }
 
-
 @Composable
 fun OverlayUI(
     context: Context,
@@ -74,7 +73,8 @@ fun OverlayUI(
     sdlContainer: FrameLayout,
     editMode: MutableState<Boolean>,
     createdButtons: SnapshotStateList<ButtonState>,
-    customCursorView: CustomCursorView
+    customCursorView: CustomCursorView,
+    addButtonView: (ButtonState, FrameLayout, Context) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val visible = UIStateManager.visible
@@ -218,7 +218,9 @@ fun OverlayUI(
                                     createdButtons.add(newButtonState)
                                 },
                                 editMode = editMode,
-                                createdButtons = createdButtons
+                                createdButtons = createdButtons,
+                                sdlContainer = sdlContainer,
+                                addButtonView = { button, container, ctx -> addButtonView(button, container, ctx) }
                             )
                             // IconButton to toggle zoom and move buttons
                             IconButton(
@@ -390,4 +392,3 @@ fun updateZoomButtonsVisibility(sdlContainer: FrameLayout, visible: Boolean) {
         }
     }
 }
-

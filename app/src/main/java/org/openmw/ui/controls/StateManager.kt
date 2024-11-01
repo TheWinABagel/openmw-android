@@ -2,6 +2,7 @@ package org.openmw.ui.controls
 
 import android.content.Context
 import android.view.KeyEvent
+import android.widget.FrameLayout
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -68,9 +68,7 @@ object UIStateManager {
     var isLogcatEnabled by mutableStateOf(false)
     val scrollState = ScrollState(0)
     var isThumbDragging by mutableStateOf(false)
-
-    var newX by mutableFloatStateOf(0f) // New shared variable
-    var newY by mutableFloatStateOf(0f) // New shared variable
+    var buttonStates = mutableMapOf<Int, MutableState<ButtonState>>()
 }
 
 fun saveButtonState(context: Context, state: List<ButtonState>) {
@@ -79,7 +77,7 @@ fun saveButtonState(context: Context, state: List<ButtonState>) {
         file.createNewFile()
     }
 
-    val thumbstick = loadButtonState(context).find { it.id == 99 }
+    val thumbstick = state.find { it.id == 99 }
     val existingStates = state.filter { it.id != 99 }.toMutableList()
 
     thumbstick?.let { existingStates.add(it) }
@@ -91,7 +89,6 @@ fun saveButtonState(context: Context, state: List<ButtonState>) {
     }
 }
 
-
 fun loadButtonState(context: Context): List<ButtonState> {
     val file = File("${Constants.USER_CONFIG}/UI.cfg")
     return if (file.exists()) {
@@ -99,7 +96,7 @@ fun loadButtonState(context: Context): List<ButtonState> {
             val regex = """ButtonID_(\d+)\(([\d.]+);([\d.]+);([\d.]+);(true|false);(\d+)\)""".toRegex()
             val matchResult = regex.find(line)
             matchResult?.let {
-                ButtonState(
+                val buttonState = ButtonState(
                     id = it.groupValues[1].toInt(),
                     size = it.groupValues[2].toFloat(),
                     offsetX = it.groupValues[3].toFloat(),
@@ -107,6 +104,10 @@ fun loadButtonState(context: Context): List<ButtonState> {
                     isLocked = it.groupValues[5].toBoolean(),
                     keyCode = it.groupValues[6].toInt()
                 )
+
+                // Update UIStateManager
+                UIStateManager.buttonStates[buttonState.id] = mutableStateOf(buttonState)
+                buttonState
             }
         }
     } else {
@@ -137,6 +138,8 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>, editMode
         KeyEvent.KEYCODE_SHIFT_RIGHT,
         KeyEvent.KEYCODE_CTRL_LEFT,
         KeyEvent.KEYCODE_CTRL_RIGHT,
+        KeyEvent.KEYCODE_ALT_LEFT,
+        KeyEvent.KEYCODE_ALT_RIGHT,
         KeyEvent.KEYCODE_SPACE,
         KeyEvent.KEYCODE_ESCAPE,
         KeyEvent.KEYCODE_ENTER,
@@ -236,7 +239,7 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>, editMode
                     }
                     HorizontalDivider(color = Color.White, thickness = 1.dp, modifier = Modifier.padding(vertical = 16.dp))
                     Text(
-                        text = "Select a Unique Key, The shift keys toggle.",
+                        text = "Select a Unique Key, The shift and alt keys toggle.",
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -252,6 +255,8 @@ fun KeySelectionMenu(onKeySelected: (Int) -> Unit, usedKeys: List<Int>, editMode
                                     KeyEvent.KEYCODE_SHIFT_RIGHT -> "Shift-R"
                                     KeyEvent.KEYCODE_CTRL_LEFT -> "Ctrl-L"
                                     KeyEvent.KEYCODE_CTRL_RIGHT -> "Ctrl-R"
+                                    KeyEvent.KEYCODE_ALT_LEFT -> "Alt-L"
+                                    KeyEvent.KEYCODE_ALT_RIGHT -> "Alt-R"
                                     KeyEvent.KEYCODE_SPACE -> "Space"
                                     KeyEvent.KEYCODE_ESCAPE -> "Escape"
                                     KeyEvent.KEYCODE_ENTER -> "Enter"
@@ -298,10 +303,11 @@ fun DynamicButtonManager(
     context: Context,
     onNewButtonAdded: (ButtonState) -> Unit,
     editMode: MutableState<Boolean>,
-    createdButtons: List<ButtonState>
+    createdButtons: List<ButtonState>,
+    sdlContainer: FrameLayout,
+    addButtonView: (ButtonState, FrameLayout, Context) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-
     Column(
         modifier = Modifier.padding(start = 40.dp) // Add padding to space from the left
     ) {
@@ -313,7 +319,6 @@ fun DynamicButtonManager(
                 Icon(Icons.Default.Build, contentDescription = "Button Menu")
             }
         }
-
         if (showDialog) {
             KeySelectionMenu(
                 onKeySelected = { keyCode ->
@@ -331,11 +336,13 @@ fun DynamicButtonManager(
                         keyCode = keyCode
                     )
                     val updatedButtons = otherButtons + newButtonState
-                    thumbstick?.let { updatedButtons + it }
-                    saveButtonState(context, updatedButtons)
+                    val finalUpdatedButtons = thumbstick?.let { updatedButtons + it } ?: updatedButtons
+                    saveButtonState(context, finalUpdatedButtons)
                     onNewButtonAdded(newButtonState)
                     showDialog = false
                     editMode.value = true
+
+                    addButtonView(newButtonState, sdlContainer, context)
                 },
                 usedKeys = createdButtons.map { it.keyCode },
                 editMode = editMode

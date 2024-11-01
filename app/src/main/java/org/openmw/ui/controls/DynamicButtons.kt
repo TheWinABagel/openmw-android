@@ -13,11 +13,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -33,12 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import org.libsdl.app.SDLActivity.onNativeKeyDown
 import org.libsdl.app.SDLActivity.onNativeKeyUp
 import org.openmw.utils.vibrate
-import kotlin.math.roundToInt
 
 @Composable
 fun ResizableDraggableButton(
@@ -46,26 +42,27 @@ fun ResizableDraggableButton(
     id: Int,
     keyCode: Int,
     editMode: Boolean,
+    isDragging: Boolean,
     onDelete: () -> Unit,
     customCursorView: CustomCursorView
 ) {
-    var buttonState by remember {
-        mutableStateOf(
-            loadButtonState(context).find { it.id == id }
-                ?: ButtonState(id, 100f, 0f, 0f, false, keyCode)
-        )
-    }
+    val buttonState = UIStateManager.buttonStates.getOrPut(id) {
+        mutableStateOf(ButtonState(id, 100f, 0f, 0f, false, keyCode))
+    }.value
     var buttonSize by remember { mutableStateOf(buttonState.size.dp) }
-    var offsetX by remember { mutableFloatStateOf(buttonState.offsetX) }
-    var offsetY by remember { mutableFloatStateOf(buttonState.offsetY) }
-    var isDragging by remember { mutableStateOf(false) }
+    val offsetX = remember { mutableFloatStateOf(buttonState.offsetX) }
+    val offsetY = remember { mutableFloatStateOf(buttonState.offsetY) }
     var isPressed by remember { mutableStateOf(false) }
     val density = LocalDensity.current
     val visible = UIStateManager.visible
     val saveState = {
-        val updatedState = ButtonState(id, buttonSize.value, offsetX, offsetY, buttonState.isLocked, keyCode)
-        val allStates = loadButtonState(context).filter { it.id != id } + updatedState
-        saveButtonState(context, allStates)
+        val updatedState = buttonState.copy(
+            size = buttonSize.value,
+            offsetX = offsetX.floatValue,
+            offsetY = offsetY.floatValue
+        )
+        UIStateManager.buttonStates[id]?.value = updatedState
+        saveButtonState(context, UIStateManager.buttonStates.values.map { it.value })
     }
 
     AnimatedVisibility(
@@ -90,32 +87,16 @@ fun ResizableDraggableButton(
         )
     ) {
         Box(
+            contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Transparent)
         ) {
             Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(buttonSize)
-                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                     .background(Color.Transparent)
-                    .then(
-                        if (editMode) {
-                            Modifier.pointerInput(Unit) {
-                                detectDragGestures(
-                                    onDragStart = { isDragging = true },
-                                    onDrag = { change, dragAmount ->
-                                        offsetX += dragAmount.x
-                                        offsetY += dragAmount.y
-                                    },
-                                    onDragEnd = {
-                                        isDragging = false
-                                        saveState()
-                                    }
-                                )
-                            }
-                        } else Modifier
-                    )
                     .border(2.dp, if (isDragging) Color.Red else Color.Black, shape = CircleShape)
             ) {
                 // Main button
@@ -123,16 +104,19 @@ fun ResizableDraggableButton(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(
-                            if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
-                                if (isPressed) Color.Green else Color(alpha = 0.6f, red = 0f, green = 0f, blue = 0f)
+                            if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
+                                keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
+                                if (isPressed) Color(alpha = 0.25f, red = 0f, green = 10f, blue = 0f) else Color(alpha = 0.25f, red = 0f, green = 0f, blue = 0f)
                             } else {
                                 Color(alpha = 0.25f, red = 0f, green = 0f, blue = 0f)
-                            }, shape = CircleShape
+                            },
+                            shape = CircleShape
                         )
                         .pointerInput(Unit) {
                             detectTapGestures(
                                 onPress = {
-                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
+                                        keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
                                         isPressed = !isPressed
                                         if (isPressed) {
                                             onNativeKeyDown(keyCode)
@@ -145,6 +129,7 @@ fun ResizableDraggableButton(
                                     }
                                     if (keyCode == KeyEvent.KEYCODE_Z) {
                                         onNativeKeyDown(keyCode)
+                                        onNativeKeyDown(KeyEvent.KEYCODE_ENTER)
                                         if (UIStateManager.isCustomCursorEnabled) {
                                             customCursorView.performMouseClick()
                                         } else {
@@ -160,7 +145,8 @@ fun ResizableDraggableButton(
                                         }
                                     }
                                     awaitRelease()
-                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT) {
+                                    if (keyCode == KeyEvent.KEYCODE_SHIFT_LEFT || keyCode == KeyEvent.KEYCODE_SHIFT_RIGHT ||
+                                        keyCode == KeyEvent.KEYCODE_ALT_LEFT || keyCode == KeyEvent.KEYCODE_ALT_RIGHT) {
                                         // Do nothing for SHIFT keys as they toggle
                                     } else {
                                         onNativeKeyUp(keyCode)
@@ -239,6 +225,8 @@ fun keyCodeToChar(keyCode: Int): String {
         KeyEvent.KEYCODE_SHIFT_RIGHT -> "Shift-R"
         KeyEvent.KEYCODE_CTRL_LEFT -> "Ctrl-L"
         KeyEvent.KEYCODE_CTRL_RIGHT -> "Ctrl-R"
+        KeyEvent.KEYCODE_ALT_LEFT -> "Alt-L"
+        KeyEvent.KEYCODE_ALT_RIGHT -> "Alt-R"
         KeyEvent.KEYCODE_SPACE -> "Space"
         KeyEvent.KEYCODE_ESCAPE -> "Escape"
         KeyEvent.KEYCODE_ENTER -> "Enter"

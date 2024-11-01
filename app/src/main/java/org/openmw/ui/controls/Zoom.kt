@@ -3,6 +3,7 @@ package org.openmw.ui.controls
 import android.content.Context
 import android.graphics.Color
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.FrameLayout
@@ -10,72 +11,10 @@ import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 
-fun updateNavigationButtonsVisibility(buttons: List<Button>, visible: Boolean) {
-    val visibility = if (visible) View.VISIBLE else View.GONE
-    buttons.forEach { it.visibility = visibility }
-}
-
 fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLayout) {
-    // Add navigation buttons
-    val moveUpButton = Button(context).apply {
-        text = "Up"
-        setOnClickListener {
-            sdlView.translationY -= 300
-        }
-    }
-    val moveDownButton = Button(context).apply {
-        text = "Down"
-        setOnClickListener {
-            sdlView.translationY += 300
-        }
-    }
-    val moveLeftButton = Button(context).apply {
-        text = "Left"
-        setOnClickListener {
-            sdlView.translationX -= 300
-        }
-    }
-    val moveRightButton = Button(context).apply {
-        text = "Right"
-        setOnClickListener {
-            sdlView.translationX += 300
-        }
-    }
 
-    // Add the move buttons to the layout
-    sdlContainer.addView(moveUpButton, FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT
-    ).apply {
-        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        bottomMargin = 150
-    })
-    sdlContainer.addView(moveDownButton, FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT
-    ).apply {
-        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        bottomMargin = 50
-    })
-    sdlContainer.addView(moveLeftButton, FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT
-    ).apply {
-        gravity = Gravity.BOTTOM or Gravity.START
-        marginStart = 50
-        bottomMargin = 100
-    })
-    sdlContainer.addView(moveRightButton, FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT
-    ).apply {
-        gravity = Gravity.BOTTOM or Gravity.END
-        bottomMargin = 100
-    })
-
-    // Initially set navigation buttons to GONE
-    updateNavigationButtonsVisibility(listOf(moveUpButton, moveDownButton, moveLeftButton, moveRightButton), false)
-
+    var offsetX = 0f
+    var offsetY = 0f
     // Add a horizontal slider for zoom control at the top center
     val zoomSlider = SeekBar(context).apply {
         max = 200 // Set maximum zoom scale factor (2.0x)
@@ -94,10 +33,6 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
                 val scaleFactor = 0.9f + (progress / 100f) * 1.9f // Ensure minimum scale factor is 0.9f
                 sdlView.scaleX = scaleFactor
                 sdlView.scaleY = scaleFactor
-                updateNavigationButtonsVisibility(
-                    listOf(moveUpButton, moveDownButton, moveLeftButton, moveRightButton),
-                    scaleFactor > 1.0f // Show navigation buttons only if zoomed in
-                )
             }
             override fun onStartTrackingTouch(seekBar: SeekBar) {}
             override fun onStopTrackingTouch(seekBar: SeekBar) {}
@@ -115,7 +50,6 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
             sdlView.scaleY = 1.0f
             sdlView.translationX = 0f // Reset position
             sdlView.translationY = 0f // Reset position
-            updateNavigationButtonsVisibility(listOf(moveUpButton, moveDownButton, moveLeftButton, moveRightButton), false)
             zoomSlider.progress = 100 // Reset slider to reflect 1.0f zoom
         }
     }
@@ -130,6 +64,28 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
         topMargin = 100 // Adjusted to avoid overlap with zoom in button
     })
 
+    // Implement touch-based movement for sdlView
+    sdlView.setOnTouchListener { view, event ->
+        when (event.action) {
+            MotionEvent.ACTION_DOWN -> {
+                offsetX = event.x - sdlView.translationX
+                offsetY = event.y - sdlView.translationY
+                true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                sdlView.translationX = event.x - offsetX
+                sdlView.translationY = event.y - offsetY
+                true
+            }
+            MotionEvent.ACTION_UP -> {
+                offsetX = event.x - sdlView.translationX
+                offsetY = event.y - sdlView.translationY
+                true
+            }
+            else -> false
+        }
+    }
+    /*
     // Create an easter egg view
     val easterEggView = FrameLayout(context).apply {
         layoutParams = FrameLayout.LayoutParams(
@@ -155,7 +111,7 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
             gravity = Gravity.CENTER
         })
 
-        /*
+
         // Add an ImageView
     val imageView = ImageView(context).apply {
         setImageResource(R.drawable.your_image) // Make sure to have an image resource in your drawable folder
@@ -168,7 +124,7 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
         gravity = Gravity.CENTER_HORIZONTAL or Gravity.TOP
         topMargin = 200
     })
-         */
+
     }
 
     // Add the easter egg view to the layout
@@ -211,4 +167,6 @@ fun addZoomAndMoveButtons(context: Context, sdlView: View, sdlContainer: FrameLa
 
     // Add the flip slider to the layout
     sdlContainer.addView(flipSlider)
+    */
+
 }

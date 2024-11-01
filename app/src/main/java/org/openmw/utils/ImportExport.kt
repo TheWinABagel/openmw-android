@@ -30,6 +30,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -158,6 +159,21 @@ fun zipFilesAndDirectories(rootDirectory: File, files: List<File>, directories: 
     }
 }
 
+fun exportFile(context: Context, fileName: String) {
+    val sourceFile = File(Constants.USER_CONFIG, fileName)
+    val targetDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+    val targetFile = File(targetDirectory, fileName)
+
+    try {
+        sourceFile.copyTo(targetFile, overwrite = true)
+        Toast.makeText(context, "File exported to Downloads", Toast.LENGTH_SHORT).show()
+    } catch (e: IOException) {
+        e.printStackTrace()
+        Toast.makeText(context, "Failed to export file", Toast.LENGTH_SHORT).show()
+    }
+}
+
+
 fun exportFilesAndDirectories(context: Context) {
     val downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
     val dateFormat = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
@@ -238,23 +254,34 @@ fun importSpecificFile(context: Context, filePattern: String) {
         }?.firstOrNull()
 
         if (specificFile != null) {
-            if (specificFile.name == "settings.cfg") {
-                // Overwrite settings.cfg
-                specificFile.copyTo(File(Constants.SETTINGS_FILE), overwrite = true)
-                Toast.makeText(context, "File ${specificFile.name} imported successfully", Toast.LENGTH_SHORT).show()
-            } else if (specificFile.name.endsWith(".omwsave")) {
-                // Import .omwsave file into a random folder
-                val randomFolderName = "_${Random.nextInt(10, 99)}"
-                val savesDirectory = File(Constants.USER_FILE_STORAGE, "saves")
-                if (!savesDirectory.exists()) {
-                    savesDirectory.mkdirs()
+            when {
+                specificFile.name == "settings.cfg" -> {
+                    // Overwrite settings.cfg
+                    specificFile.copyTo(File(Constants.SETTINGS_FILE), overwrite = true)
+                    Toast.makeText(context, "File ${specificFile.name} imported successfully", Toast.LENGTH_SHORT).show()
                 }
-                val targetSaveFolder = File(savesDirectory, randomFolderName)
-                if (!targetSaveFolder.exists()) {
-                    targetSaveFolder.mkdirs()
+                specificFile.name.endsWith(".omwsave") -> {
+                    // Import .omwsave file into a random folder
+                    val randomFolderName = "_${Random.nextInt(10, 99)}"
+                    val savesDirectory = File(Constants.USER_FILE_STORAGE, "saves")
+                    if (!savesDirectory.exists()) {
+                        savesDirectory.mkdirs()
+                    }
+                    val targetSaveFolder = File(savesDirectory, randomFolderName)
+                    if (!targetSaveFolder.exists()) {
+                        targetSaveFolder.mkdirs()
+                    }
+                    specificFile.copyTo(File(targetSaveFolder, specificFile.name), overwrite = true)
+                    Toast.makeText(context, "Save file ${specificFile.name} imported successfully to $randomFolderName", Toast.LENGTH_SHORT).show()
                 }
-                specificFile.copyTo(File(targetSaveFolder, specificFile.name), overwrite = true)
-                Toast.makeText(context, "Save file ${specificFile.name} imported successfully to $randomFolderName", Toast.LENGTH_SHORT).show()
+                specificFile.name == "UI.cfg" -> {
+                    // Overwrite UI.cfg
+                    specificFile.copyTo(File(Constants.USER_CONFIG, "UI.cfg"), overwrite = true)
+                    Toast.makeText(context, "File ${specificFile.name} imported successfully", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    Toast.makeText(context, "File matching pattern $filePattern not found for import", Toast.LENGTH_SHORT).show()
+                }
             }
         } else {
             Toast.makeText(context, "File matching pattern $filePattern not found for import", Toast.LENGTH_SHORT).show()
